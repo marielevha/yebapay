@@ -9,6 +9,7 @@ import com.yebapay.core.identity.auth.dto.PasswordResetVerificationResponse;
 import com.yebapay.core.identity.auth.dto.RefreshTokenRequest;
 import com.yebapay.core.identity.auth.dto.RegisterRequest;
 import com.yebapay.core.identity.auth.dto.ResetPasswordRequest;
+import com.yebapay.core.identity.auth.dto.SetupTransactionPinRequest;
 import com.yebapay.core.identity.auth.dto.VerifyPasswordResetOtpRequest;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -50,6 +51,14 @@ public class AuthController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout(@Valid @RequestBody RefreshTokenRequest request) {
         authService.logout(request);
+    }
+
+    @PostMapping("/transaction-pin")
+    public AuthActionResponse setupTransactionPin(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @Valid @RequestBody SetupTransactionPinRequest request
+    ) {
+        return authService.setupTransactionPin(principal, request);
     }
 
     @PostMapping("/forgot-password/request-otp")

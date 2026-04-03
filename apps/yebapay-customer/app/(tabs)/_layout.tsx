@@ -1,27 +1,40 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useI18n } from '@/i18n/provider';
+import { useSession } from '@/providers/session-provider';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const palette = Colors[colorScheme ?? 'light'];
+  const { t } = useI18n();
+  const { isAuthenticated, isBootstrapping } = useSession();
+
+  if (isBootstrapping) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Redirect href="/(auth)/login" />;
+  }
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        tabBarInactiveTintColor: Colors[colorScheme ?? 'light'].tabIconDefault,
+        tabBarActiveTintColor: palette.tint,
+        tabBarInactiveTintColor: palette.tabIconDefault,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: [
           styles.tabBar,
           {
-            backgroundColor: Colors[colorScheme ?? 'light'].surface,
-            borderTopColor: Colors[colorScheme ?? 'light'].border,
+            backgroundColor: palette.surface,
+            borderTopColor: palette.border,
           },
         ],
         tabBarLabelStyle: styles.tabLabel,
@@ -29,16 +42,44 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Accueil',
+          title: t('tabs.home'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
         }}
       />
       <Tabs.Screen
         name="scanner"
         options={{
-          title: 'Scanner',
+          title: t('tabs.scanner'),
+          tabBarIcon: ({ color, focused }) => (
+            <View
+              style={[
+                styles.scannerIconWrap,
+                {
+                  backgroundColor: focused ? palette.tint : palette.card,
+                },
+              ]}>
+              <IconSymbol
+                size={28}
+                name="qrcode.viewfinder"
+                color={focused ? palette.heroText : color}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="activity"
+        options={{
+          title: t('tabs.activity'),
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: t('tabs.profile'),
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="qrcode.viewfinder" color={color} />
+            <IconSymbol size={28} name="person.crop.circle.fill" color={color} />
           ),
         }}
       />
@@ -55,5 +96,13 @@ const styles = StyleSheet.create({
   tabLabel: {
     fontSize: 12,
     fontWeight: '700',
+  },
+  scannerIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -4,
   },
 });

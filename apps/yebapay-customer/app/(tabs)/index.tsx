@@ -4,66 +4,88 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { BrandMark } from '@/components/brand-mark';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Brand, BrandCopy, BrandShadow } from '@/constants/brand';
+import { Brand, BrandShadow } from '@/constants/brand';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useI18n } from '@/i18n/provider';
 
-const quickActionMeta = {
-  Scanner: {
+const QUICK_ACTIONS = [
+  {
     icon: 'qr-code-scanner',
-    title: 'Payer par QR',
-    description: 'Scanner un QR marchand ou une demande de paiement.',
+    titleKey: 'home.quickActions.payByQr.title',
+    descriptionKey: 'home.quickActions.payByQr.description',
   },
-  Transferer: {
+  {
     icon: 'swap-horiz',
-    title: 'Envoyer',
-    description: 'Transferer des fonds entre particuliers avec idempotence.',
+    titleKey: 'home.quickActions.send.title',
+    descriptionKey: 'home.quickActions.send.description',
   },
-  Demander: {
+  {
     icon: 'request-page',
-    title: 'Demander',
-    description: "Creer une demande d'argent payable tout de suite ou plus tard.",
+    titleKey: 'home.quickActions.request.title',
+    descriptionKey: 'home.quickActions.request.description',
   },
-  'Mon QR': {
+  {
     icon: 'badge',
-    title: 'Recevoir',
-    description: 'Partager un QR personnel pour etre paye plus vite.',
+    titleKey: 'home.quickActions.receive.title',
+    descriptionKey: 'home.quickActions.receive.description',
   },
-} as const;
+] as const;
 
-const backendReadiness = [
-  'Authentification + refresh token',
-  'Wallet + historique',
-  'Transfert P2P avec ledger',
-  "Demande d'argent",
-  'Paiement marchand',
-  'QR decode et verification',
-];
+const BACKEND_ITEM_KEYS = [
+  'home.backend.items.auth',
+  'home.backend.items.wallet',
+  'home.backend.items.p2p',
+  'home.backend.items.request',
+  'home.backend.items.merchant',
+  'home.backend.items.qr',
+] as const;
 
-const promiseCards = [
+const HERO_PILLAR_KEYS = [
+  'home.hero.pillars.fees',
+  'home.hero.pillars.fast',
+  'home.hero.pillars.history',
+] as const;
+
+const PROMISE_CARDS = [
   {
     icon: 'visibility',
-    title: 'Frais visibles',
-    description: "Le montant, les frais et le net credite restent lisibles avant confirmation.",
+    titleKey: 'home.promise.visibleFees.title',
+    descriptionKey: 'home.promise.visibleFees.description',
   },
   {
     icon: 'bolt',
-    title: 'Rapide au comptoir',
-    description: 'Le parcours QR est pense pour payer en quelques etapes, pas en plusieurs menus.',
+    titleKey: 'home.promise.counterFast.title',
+    descriptionKey: 'home.promise.counterFast.description',
   },
   {
     icon: 'history',
-    title: 'Flux tracables',
-    description: "Le backend garde l'historique transactionnel et comptable comme source de verite.",
+    titleKey: 'home.promise.traceable.title',
+    descriptionKey: 'home.promise.traceable.description',
   },
-];
+] as const;
+
+const BALANCE_PREVIEW = {
+  total: '24 350 FCFA',
+  available: '24 350 FCFA',
+} as const;
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
-  const quickActions = BrandCopy.quickActions.map((label) => ({
-    label,
-    ...quickActionMeta[label],
+  const { t } = useI18n();
+
+  const quickActions = QUICK_ACTIONS.map((action) => ({
+    ...action,
+    title: t(action.titleKey),
+    description: t(action.descriptionKey),
+  }));
+  const backendReadiness = BACKEND_ITEM_KEYS.map((key) => t(key));
+  const heroPillars = HERO_PILLAR_KEYS.map((key) => t(key));
+  const promiseCards = PROMISE_CARDS.map((card) => ({
+    ...card,
+    title: t(card.titleKey),
+    description: t(card.descriptionKey),
   }));
 
   return (
@@ -77,7 +99,7 @@ export default function HomeScreen() {
             <BrandMark size={58} />
             <View style={styles.heroHeaderCopy}>
               <ThemedText type="eyebrow" lightColor={palette.heroText} darkColor={palette.heroText}>
-                Wallet QR
+                {t('common.walletQr')}
               </ThemedText>
               <ThemedText
                 type="sectionTitle"
@@ -89,18 +111,18 @@ export default function HomeScreen() {
           </View>
 
           <ThemedText type="hero" lightColor={palette.heroText} darkColor={palette.heroText}>
-            {Brand.slogan}
+            {t('brand.slogan')}
           </ThemedText>
           <ThemedText
             type="bodySmall"
             style={styles.heroBody}
             lightColor={palette.heroText}
             darkColor={palette.heroText}>
-            {Brand.productLine} Une base mobile claire pour transferer, demander et payer.
+            {t('home.hero.body')}
           </ThemedText>
 
           <View style={styles.heroPills}>
-            {BrandCopy.trustPillars.map((pillar) => (
+            {heroPillars.map((pillar) => (
               <View
                 key={pillar}
                 style={[styles.heroPill, { backgroundColor: 'rgba(250, 250, 247, 0.14)' }]}>
@@ -114,14 +136,14 @@ export default function HomeScreen() {
 
         <View style={styles.sectionHeader}>
           <View>
-            <ThemedText type="sectionTitle">Solde principal</ThemedText>
+            <ThemedText type="sectionTitle">{t('home.balance.title')}</ThemedText>
             <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-              {"Carte d'accueil prete a etre branchee sur GET /wallets/me"}
+              {t('home.balance.subtitle')}
             </ThemedText>
           </View>
           <View style={[styles.liveBadge, { backgroundColor: palette.card }]}>
             <ThemedText type="eyebrow" lightColor={palette.tint} darkColor={palette.tint}>
-              MVP
+              {t('common.mvp')}
             </ThemedText>
           </View>
         </View>
@@ -138,9 +160,9 @@ export default function HomeScreen() {
           <View style={styles.balanceHeader}>
             <View>
               <ThemedText type="eyebrow" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-                Compte ordinaire
+                {t('common.ordinaryAccount')}
               </ThemedText>
-              <ThemedText type="balance">24 350 FCFA</ThemedText>
+              <ThemedText type="balance">{BALANCE_PREVIEW.total}</ThemedText>
             </View>
             <View style={[styles.balanceIconWrap, { backgroundColor: palette.card }]}>
               <MaterialIcons name="account-balance-wallet" size={26} color={palette.tint} />
@@ -150,24 +172,24 @@ export default function HomeScreen() {
           <View style={styles.balanceStats}>
             <View style={styles.balanceStat}>
               <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-                Disponible
+                {t('common.available')}
               </ThemedText>
-              <ThemedText type="defaultSemiBold">24 350 FCFA</ThemedText>
+              <ThemedText type="defaultSemiBold">{BALANCE_PREVIEW.available}</ThemedText>
             </View>
             <View style={styles.balanceStat}>
               <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-                Derniere activite
+                {t('home.balance.lastActivityLabel')}
               </ThemedText>
-              <ThemedText type="defaultSemiBold">P2P + paiement marchand</ThemedText>
+              <ThemedText type="defaultSemiBold">{t('home.balance.lastActivityValue')}</ThemedText>
             </View>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
           <View>
-            <ThemedText type="sectionTitle">Raccourcis</ThemedText>
+            <ThemedText type="sectionTitle">{t('home.quickActions.title')}</ThemedText>
             <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-              Les parcours deja portes par le backend deviennent des tuiles claires ici.
+              {t('home.quickActions.subtitle')}
             </ThemedText>
           </View>
         </View>
@@ -175,7 +197,7 @@ export default function HomeScreen() {
         <View style={styles.quickGrid}>
           {quickActions.map((action) => (
             <View
-              key={action.label}
+              key={action.titleKey}
               style={[
                 styles.quickCard,
                 {
@@ -196,9 +218,9 @@ export default function HomeScreen() {
 
         <View style={styles.sectionHeader}>
           <View>
-            <ThemedText type="sectionTitle">Pret cote backend</ThemedText>
+            <ThemedText type="sectionTitle">{t('home.backend.title')}</ThemedText>
             <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-              Cette premiere home met en avant ce qui est deja branchable sans inventer de faux flux.
+              {t('home.backend.subtitle')}
             </ThemedText>
           </View>
         </View>
@@ -221,16 +243,16 @@ export default function HomeScreen() {
 
         <View style={styles.sectionHeader}>
           <View>
-            <ThemedText type="sectionTitle">Pourquoi ca change</ThemedText>
+            <ThemedText type="sectionTitle">{t('home.promise.title')}</ThemedText>
             <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-              Le branding doit soutenir une promesse simple: moins de friction, plus de lisibilite.
+              {t('home.promise.subtitle')}
             </ThemedText>
           </View>
         </View>
 
         {promiseCards.map((card) => (
           <View
-            key={card.title}
+            key={card.titleKey}
             style={[
               styles.promiseCard,
               {
@@ -325,13 +347,13 @@ const styles = StyleSheet.create({
   },
   balanceCard: {
     borderRadius: 24,
-    padding: 20,
     borderWidth: 1,
+    padding: 20,
     gap: 18,
   },
   balanceHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
   },
@@ -344,25 +366,23 @@ const styles = StyleSheet.create({
   },
   balanceStats: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 18,
   },
   balanceStat: {
-    minWidth: 140,
-    gap: 4,
+    flex: 1,
+    gap: 6,
   },
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 14,
+    gap: 12,
   },
   quickCard: {
     width: '48%',
-    minWidth: 152,
     borderRadius: 22,
     borderWidth: 1,
     padding: 16,
-    gap: 10,
+    gap: 12,
   },
   quickIconWrap: {
     width: 48,
@@ -385,7 +405,7 @@ const styles = StyleSheet.create({
   backendDot: {
     width: 10,
     height: 10,
-    borderRadius: 5,
+    borderRadius: 999,
   },
   promiseCard: {
     borderRadius: 22,
@@ -395,9 +415,9 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   promiseIconWrap: {
-    width: 50,
-    height: 50,
-    borderRadius: 18,
+    width: 46,
+    height: 46,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },

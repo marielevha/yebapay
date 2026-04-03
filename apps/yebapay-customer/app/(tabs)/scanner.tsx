@@ -7,60 +7,75 @@ import { ThemedView } from '@/components/themed-view';
 import { Brand, BrandShadow } from '@/constants/brand';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useI18n } from '@/i18n/provider';
 
-const scanJourneys = [
+const SCAN_JOURNEYS = [
   {
     icon: 'storefront',
-    title: 'Payer un commercant',
-    description: 'Scanner un QR marchand, verifier le montant et confirmer avec le PIN.',
+    titleKey: 'scanner.journeys.merchant.title',
+    descriptionKey: 'scanner.journeys.merchant.description',
   },
   {
     icon: 'request-page',
-    title: "Regler une demande d'argent",
-    description: "Accepter une demande envoyee par un autre user et payer depuis le wallet.",
+    titleKey: 'scanner.journeys.request.title',
+    descriptionKey: 'scanner.journeys.request.description',
   },
   {
     icon: 'badge',
-    title: 'Afficher mon QR',
-    description: 'Partager un QR personnel pour recevoir un transfert rapidement.',
+    titleKey: 'scanner.journeys.personalQr.title',
+    descriptionKey: 'scanner.journeys.personalQr.description',
   },
-];
+] as const;
 
-const scannerHighlights = [
-  'QR personnel et marchand',
-  'Verification cote backend',
-  'Signature et statut du QR',
-  'Paiement marchand et P2P',
-];
+const SCANNER_HIGHLIGHT_KEYS = [
+  'scanner.hero.highlights.personal',
+  'scanner.hero.highlights.verification',
+  'scanner.hero.highlights.signature',
+  'scanner.hero.highlights.payments',
+] as const;
 
-const safetyRules = [
-  'Toujours verifier le nom et le montant avant confirmation.',
-  "Ne jamais valider un QR expire ou deja utilise.",
-  'Reconfirmer les operations sensibles avec le PIN transactionnel.',
-];
+const SAFETY_RULE_KEYS = [
+  'scanner.trust.verify',
+  'scanner.trust.expired',
+  'scanner.trust.pin',
+] as const;
 
 export default function ScannerScreen() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
+  const { t } = useI18n();
+
+  const scanJourneys = SCAN_JOURNEYS.map((journey) => ({
+    ...journey,
+    title: t(journey.titleKey),
+    description: t(journey.descriptionKey),
+  }));
+  const scannerHighlights = SCANNER_HIGHLIGHT_KEYS.map((key) => t(key));
+  const safetyRules = SAFETY_RULE_KEYS.map((key) => t(key));
 
   return (
     <ThemedView style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.heroCard, { backgroundColor: palette.surface, borderColor: palette.border }, BrandShadow.card]}>
+        <View
+          style={[
+            styles.heroCard,
+            { backgroundColor: palette.surface, borderColor: palette.border },
+            BrandShadow.card,
+          ]}>
           <View style={styles.heroTop}>
             <View style={[styles.heroIconWrap, { backgroundColor: palette.hero }]}>
               <BrandMark size={52} />
             </View>
             <View style={styles.heroCopy}>
               <ThemedText type="eyebrow" lightColor={palette.tint} darkColor={palette.tint}>
-                Onglet scanner
+                {t('scanner.hero.eyebrow')}
               </ThemedText>
-              <ThemedText type="title">{"Le QR devient le point d'entree."}</ThemedText>
+              <ThemedText type="title">{t('scanner.hero.title')}</ThemedText>
             </View>
           </View>
 
           <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-            {`${Brand.name} s'appuie sur des parcours QR lisibles: paiement marchand, demande d'argent et reception.`}
+            {t('scanner.hero.description', { brandName: Brand.name })}
           </ThemedText>
 
           <View style={styles.highlightWrap}>
@@ -73,15 +88,15 @@ export default function ScannerScreen() {
         </View>
 
         <View style={styles.sectionHeader}>
-          <ThemedText type="sectionTitle">Parcours a exposer ici</ThemedText>
+          <ThemedText type="sectionTitle">{t('scanner.journeys.title')}</ThemedText>
           <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-            Fondes sur le backend actuel
+            {t('scanner.journeys.subtitle')}
           </ThemedText>
         </View>
 
         {scanJourneys.map((journey) => (
           <View
-            key={journey.title}
+            key={journey.titleKey}
             style={[
               styles.journeyCard,
               {
@@ -102,7 +117,7 @@ export default function ScannerScreen() {
         ))}
 
         <View style={styles.sectionHeader}>
-          <ThemedText type="sectionTitle">Etape camera</ThemedText>
+          <ThemedText type="sectionTitle">{t('scanner.camera.sectionTitle')}</ThemedText>
         </View>
 
         <View
@@ -118,16 +133,16 @@ export default function ScannerScreen() {
           </View>
           <View style={styles.cameraCopy}>
             <ThemedText type="sectionTitle" lightColor={palette.heroText} darkColor={palette.heroText}>
-              Prochaine integration
+              {t('scanner.camera.cardTitle')}
             </ThemedText>
             <ThemedText type="bodySmall" lightColor={palette.heroText} darkColor={palette.heroText}>
-              {"Brancher Expo Camera pour scanner, decoder, puis router vers paiement marchand ou demande d'argent."}
+              {t('scanner.camera.description')}
             </ThemedText>
           </View>
         </View>
 
         <View style={styles.sectionHeader}>
-          <ThemedText type="sectionTitle">Regles de confiance</ThemedText>
+          <ThemedText type="sectionTitle">{t('scanner.trust.title')}</ThemedText>
         </View>
 
         <View

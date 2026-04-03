@@ -5,18 +5,21 @@ import { Brand, BrandColors } from '@/constants/brand';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { BrandMark } from '@/components/brand-mark';
+import { useI18n } from '@/i18n/provider';
 
 export default function ModalScreen() {
+  const { t } = useI18n();
+
   return (
     <ThemedView style={styles.container}>
       <BrandMark size={72} />
       <ThemedText type="title" style={styles.title}>
         {Brand.name}
       </ThemedText>
-      <ThemedText style={styles.body}>{Brand.slogan}</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
+      <ThemedText style={styles.body}>{t('brand.slogan')}</ThemedText>
+      <Link href="/(tabs)" dismissTo style={styles.link}>
         <ThemedText type="link" style={styles.linkText}>
-          {"Retour a l'accueil"}
+          {t('modal.close')}
         </ThemedText>
       </Link>
     </ThemedView>

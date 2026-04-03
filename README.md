@@ -9,23 +9,24 @@ Plateforme de portefeuille electronique orientee QR code pour le Congo-Brazzavil
 - `yebapay-admin` : backoffice d'administration, reserve pour la suite
 - `yebapay-core` : dossier reserve dans le workspace
 
-## Ce qui a ete fait
+## Etat actuel
 
 ### Backend `core`
 
-Le backend a deja une base solide pour lancer le travail mobile:
+Le backend dispose maintenant d'un socle transactionnel exploitable pour demarrer serieusement le mobile :
 
 - socle Spring Boot avec Web, Security, Validation, JPA, PostgreSQL, Flyway, OpenAPI, JWT et Lombok
 - structure de code organisee par domaines metier
 - migrations Flyway versionnees jusqu'a `V5`
 - modele de donnees principal pose avec entites JPA et repositories
-- authentification operationnelle:
+- authentification operationnelle :
   - inscription
   - connexion
   - refresh token
   - logout
   - mot de passe oublie
   - OTP de reinitialisation
+  - endpoint de configuration initiale du PIN transactionnel apres inscription
 - wallet et ledger internes poses
 - transfert P2P entre particuliers
 - demande d'argent
@@ -38,16 +39,32 @@ Le backend travaille avec `XAF` comme code devise technique et expose `FCFA` com
 
 ### Mobile `apps/yebapay-customer`
 
-La partie mobile a ete preparee pour demarrer sur de bonnes bases:
+La partie mobile a deja quitte le simple scaffold Expo :
 
 - scaffold Expo initialise et renomme en `YebaPay`
 - guide de marque dans `apps/yebapay-customer/BRAND_GUIDE.md`
 - checklist API mobile dans `apps/yebapay-customer/MOBILE_API_CHECKLIST.md`
-- theme visuel branche dans l'application
-- shell Expo Router avec les onglets:
+- structure de navigation documentee dans `apps/yebapay-customer/NAVIGATION_STRUCTURE.md`
+- theme visuel, tokens de marque et assets de marque branches dans l'application
+- splash screen et onboarding poses
+- persistance locale pour n'afficher l'onboarding qu'a la premiere utilisation
+- internationalisation `fr` / `en` avec textes centralises
+- shell Expo Router avec les onglets :
   - `Accueil`
   - `Scanner`
-- premiers ecrans YebaPay poses a la place du starter Expo
+  - `Activite`
+  - `Profil`
+- ecrans auth poses et relies au backend :
+  - login
+  - register
+  - forgot password
+  - verification OTP
+  - reset password
+  - succes de creation / reinitialisation
+  - ecran `Securisez votre wallet` pour definir le PIN transactionnel apres inscription
+- session mobile branchee avec stockage local securise
+- restauration de session au lancement
+- deconnexion avec feedback visuel
 - logo et assets de marque adaptes a l'identite visuelle
 - generateur local d'assets via `npm run assets:brand`
 
@@ -61,6 +78,7 @@ La partie mobile a ete preparee pour demarrer sur de bonnes bases:
 - paiement chez un commercant
 - cash-in MVP
 - QR personnel / QR marchand / decodage QR
+- configuration du PIN transactionnel apres inscription
 
 ## Ce qui reste a faire
 
@@ -74,11 +92,15 @@ La partie mobile a ete preparee pour demarrer sur de bonnes bases:
 
 ### Mobile
 
-- brancher le client API
-- brancher la session et le stockage local
-- remplacer les donnees de presentation par les vraies donnees backend
+- remplacer progressivement les donnees de presentation par les vraies donnees backend sur `Accueil`, `Activite`, `Scanner` et `Profil`
 - integrer la camera pour le scan QR
-- construire les parcours auth, home, transfer, demande, paiement et historique
+- construire les parcours metier complets autour du wallet :
+  - transfert P2P
+  - demande d'argent
+  - paiement marchand
+  - historique detaille
+  - profil / settings / langue
+- ajouter la gestion complete du PIN cote mobile hors onboarding initial
 
 ## Lancer les projets
 
@@ -97,6 +119,12 @@ Depuis `apps/yebapay-customer`:
 ```bash
 npm install
 npx expo start
+```
+
+Configurer l'URL backend dans `apps/yebapay-customer/.env` :
+
+```env
+EXPO_PUBLIC_API_BASE_URL=http://<ip-locale>:9999/api/v1
 ```
 
 Pour regenerer les assets de marque:

@@ -1,9 +1,5 @@
 export const Brand = {
   name: 'YebaPay',
-  slogan: "Scanne. Paye. C'est regle.",
-  productLine: 'Le wallet QR du quotidien.',
-  positioning:
-    "Une experience de paiement QR plus simple, plus claire et plus moderne que les parcours mobile money traditionnels.",
 } as const;
 
 export const BrandColors = {
@@ -39,9 +35,4 @@ export const BrandShadow = {
     shadowOffset: { width: 0, height: 12 },
     elevation: 6,
   },
-} as const;
-
-export const BrandCopy = {
-  quickActions: ['Scanner', 'Transferer', 'Demander', 'Mon QR'],
-  trustPillars: ['Frais visibles', 'Paiement rapide', 'Historique clair'],
 } as const;

@@ -2,14 +2,30 @@
 
 Application mobile Expo / React Native pour les parcours client YebaPay.
 
-## Ce qu'on a pose
+## Ce qui est en place
 
 - une base de marque dans `BRAND_GUIDE.md`
 - des tokens visuels dans `constants/brand.ts`
 - un theme mobile dans `constants/theme.ts`
-- un shell Expo Router avec deux onglets:
+- des assets de marque generes dans `assets/`
+- un splash screen et un onboarding
+- i18n `fr` / `en`
+- persistance locale pour ne plus rejouer l'onboarding apres la premiere utilisation
+- un shell Expo Router avec quatre onglets :
   - `Accueil`
   - `Scanner`
+  - `Activite`
+  - `Profil`
+- un flux auth complet :
+  - login
+  - register
+  - forgot password
+  - verification OTP
+  - reset password
+  - succes auth
+  - ecran `Securisez votre wallet`
+- une session branchee au backend avec stockage local securise
+- logout avec feedback visuel
 
 ## Flux backend deja branchables
 
@@ -19,6 +35,7 @@ Application mobile Expo / React Native pour les parcours client YebaPay.
 - demande d'argent
 - paiement marchand
 - QR decode / verification
+- configuration initiale du PIN transactionnel
 
 Le detail des contrats a consommer est documente dans `MOBILE_API_CHECKLIST.md`.
 
@@ -28,6 +45,8 @@ Le detail des contrats a consommer est documente dans `MOBILE_API_CHECKLIST.md`.
 npm install
 npx expo start
 ```
+
+Definir aussi `EXPO_PUBLIC_API_BASE_URL` dans `.env` pour pointer vers le backend local.
 
 ## Regenerer les assets de marque
 
@@ -45,7 +64,7 @@ Cette commande regenera les fichiers suivants dans `assets/`:
 
 ## Prochaines etapes cote mobile
 
-- brancher l'API client et la gestion de session
 - remplacer les donnees de presentation par des vraies reponses backend
 - integrer la camera pour le scan QR
-- affiner les variantes d'assets si le logo evolue
+- brancher les parcours metier complets autour du wallet
+- ajouter un vrai ecran settings avec choix de langue

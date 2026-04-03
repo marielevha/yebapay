@@ -49,4 +49,19 @@ public class TransactionPinService {
         user.setLockedUntil(null);
         return userRepository.save(user);
     }
+
+    @Transactional
+    public User setupInitialPin(UUID userId, String rawPin) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+
+        if (user.getPinHash() != null && !user.getPinHash().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Transaction PIN is already configured");
+        }
+
+        user.setPinHash(passwordEncoder.encode(rawPin.trim()));
+        user.setFailedPinAttempts(0);
+        user.setLockedUntil(null);
+        return userRepository.save(user);
+    }
 }

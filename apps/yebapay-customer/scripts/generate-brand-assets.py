@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 IMAGES = ASSETS / "images"
 BRAND = ASSETS / "brand"
+ONBOARDING = ASSETS / "onboarding"
 
 
 PALETTE = {
@@ -363,6 +364,191 @@ def make_wordmark(width: int, height: int) -> Image.Image:
     return canvas
 
 
+def make_onboarding_city(width: int, height: int) -> Image.Image:
+    canvas = vertical_gradient((width, height), "#8C979C", "#12191B")
+    add_orb(canvas, (-width // 6, -height // 8, width // 2, height // 3), "#D8E3E8", 120, 58)
+    add_orb(canvas, (width // 2, height // 2, width + width // 8, height + height // 5), PALETTE["sun"], 70, 120)
+    draw = ImageDraw.Draw(canvas)
+
+    draw.polygon(
+        [
+            (width * 0.28, height * 0.36),
+            (width * 0.54, height * 0.18),
+            (width * 0.72, height * 0.68),
+            (width * 0.42, height * 0.82),
+        ],
+        fill=rgba("#1B2326", 255),
+    )
+    draw.polygon(
+        [
+            (width * 0.0, height * 0.28),
+            (width * 0.26, height * 0.25),
+            (width * 0.34, height * 0.86),
+            (width * 0.0, height * 0.9),
+        ],
+        fill=rgba("#2B3438", 255),
+    )
+    draw.polygon(
+        [
+            (width * 0.68, height * 0.22),
+            (width * 1.0, height * 0.18),
+            (width * 1.0, height * 0.86),
+            (width * 0.74, height * 0.82),
+        ],
+        fill=rgba("#232B2F", 255),
+    )
+
+    for row in range(11):
+        for col in range(5):
+            x = width * 0.44 + col * width * 0.045
+            y = height * 0.31 + row * height * 0.038
+            draw.rounded_rectangle(
+                (x, y, x + width * 0.022, y + height * 0.014),
+                radius=3,
+                fill=rgba("#B8D1D6", 70 if (row + col) % 2 else 110),
+            )
+
+    for row in range(14):
+        for col in range(3):
+            x = width * 0.08 + col * width * 0.07
+            y = height * 0.34 + row * height * 0.034
+            draw.rounded_rectangle(
+                (x, y, x + width * 0.03, y + height * 0.012),
+                radius=3,
+                fill=rgba(PALETTE["sun"], 55 if row % 2 else 88),
+            )
+
+    draw.polygon(
+        [
+            (width * 0.34, height * 0.9),
+            (width * 0.67, height * 0.76),
+            (width * 0.82, height * 0.95),
+            (width * 0.26, height * 1.02),
+        ],
+        fill=rgba("#2B1E12", 255),
+    )
+
+    overlay = Image.new("RGBA", (width, height), rgba("#081012", 88))
+    canvas.alpha_composite(overlay)
+    return canvas
+
+
+def make_onboarding_wallet(width: int, height: int) -> Image.Image:
+    canvas = vertical_gradient((width, height), "#0F1B1A", "#050809")
+    add_orb(canvas, (-width // 7, height // 2, width // 2, height + height // 5), PALETTE["clay"], 68, 120)
+    add_orb(canvas, (width // 2, -height // 8, width + width // 6, height // 2), PALETTE["mist"], 36, 96)
+    draw = ImageDraw.Draw(canvas)
+
+    draw.rounded_rectangle(
+        (width * 0.57, height * 0.07, width * 1.02, height * 0.76),
+        radius=int(width * 0.08),
+        fill=rgba("#10181A", 245),
+    )
+
+    draw.ellipse(
+        (width * 0.04, height * 0.32, width * 0.8, height * 0.98),
+        fill=rgba("#7B5D47", 240),
+    )
+    draw.ellipse(
+        (width * 0.14, height * 0.4, width * 0.92, height * 1.05),
+        fill=rgba("#6C4F3D", 220),
+    )
+
+    wallet_box = (width * 0.36, height * 0.46, width * 0.82, height * 0.73)
+    draw.rounded_rectangle(wallet_box, radius=int(width * 0.04), fill=rgba("#6A432A", 255))
+    draw.rounded_rectangle(
+        (width * 0.53, height * 0.54, width * 0.84, height * 0.76),
+        radius=int(width * 0.04),
+        fill=rgba("#5A341E", 255),
+    )
+    draw.rounded_rectangle(
+        (width * 0.39, height * 0.5, width * 0.73, height * 0.59),
+        radius=int(width * 0.018),
+        fill=rgba("#D6C7A7", 250),
+    )
+    draw.text(
+        (width * 0.44, height * 0.515),
+        "YB 200",
+        font=load_font(int(width * 0.038), bold=True),
+        fill=rgba("#3D342F"),
+    )
+    draw.rounded_rectangle(
+        (width * 0.38, height * 0.61, width * 0.68, height * 0.66),
+        radius=int(width * 0.016),
+        fill=rgba("#865739", 255),
+    )
+
+    draw.rounded_rectangle(
+        (width * 0.61, height * 0.77, width * 0.79, height * 0.87),
+        radius=int(width * 0.04),
+        fill=rgba("#141E20", 255),
+    )
+    draw.rounded_rectangle(
+        (width * 0.645, height * 0.805, width * 0.755, height * 0.84),
+        radius=int(width * 0.01),
+        fill=rgba(PALETTE["cloud"], 230),
+    )
+
+    overlay = Image.new("RGBA", (width, height), rgba("#071112", 62))
+    canvas.alpha_composite(overlay)
+    return canvas
+
+
+def make_onboarding_scan(width: int, height: int) -> Image.Image:
+    canvas = vertical_gradient((width, height), "#122421", "#091112")
+    add_orb(canvas, (-width // 6, height // 4, width // 2, height * 0.8), PALETTE["mist"], 54, 94)
+    add_orb(canvas, (width // 2, -height // 7, width + width // 5, height // 2), PALETTE["sun"], 64, 110)
+    draw = ImageDraw.Draw(canvas)
+
+    draw.rounded_rectangle(
+        (width * 0.0, height * 0.74, width * 1.0, height * 1.02),
+        radius=0,
+        fill=rgba("#152523", 255),
+    )
+    draw.rounded_rectangle(
+        (width * 0.16, height * 0.34, width * 0.62, height * 0.88),
+        radius=int(width * 0.08),
+        fill=rgba("#0D1517", 255),
+        outline=rgba("#2D4540", 255),
+        width=max(4, width // 120),
+    )
+    draw.rounded_rectangle(
+        (width * 0.22, height * 0.42, width * 0.56, height * 0.77),
+        radius=int(width * 0.04),
+        fill=rgba("#F7F8F4", 245),
+    )
+    draw_mark(
+        canvas,
+        (int(width * 0.27), int(height * 0.49), int(width * 0.5), int(height * 0.72)),
+        card_fill=None,
+        corner_color=PALETTE["ink"],
+        y_color=PALETTE["palm"],
+        dot_color=PALETTE["sun"],
+        hole_color=rgba(PALETTE["cloud"]),
+    )
+
+    qr_card = (width * 0.6, height * 0.48, width * 0.9, height * 0.78)
+    draw.rounded_rectangle(qr_card, radius=int(width * 0.04), fill=rgba("#FBFAF7", 255))
+    draw_mark(
+        canvas,
+        (int(width * 0.655), int(height * 0.545), int(width * 0.845), int(height * 0.735)),
+        card_fill=None,
+        corner_color=PALETTE["ink"],
+        y_color=PALETTE["palm"],
+        dot_color=PALETTE["sun"],
+        hole_color=rgba(PALETTE["cloud"]),
+    )
+
+    draw.ellipse(
+        (width * 0.72, height * 0.22, width * 1.06, height * 0.64),
+        fill=rgba("#6D513C", 185),
+    )
+
+    overlay = Image.new("RGBA", (width, height), rgba("#071011", 58))
+    canvas.alpha_composite(overlay)
+    return canvas
+
+
 def write_png(image: Image.Image, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     image.save(path, format="PNG")
@@ -381,6 +567,9 @@ def main() -> None:
     write_png(make_partial_banner(518, 316), IMAGES / "partial-react-logo.png")
     write_png(make_icon(1024), BRAND / "yebapay-badge.png")
     write_png(make_wordmark(1600, 600), BRAND / "yebapay-wordmark.png")
+    write_png(make_onboarding_city(1080, 2160), ONBOARDING / "slide-city.png")
+    write_png(make_onboarding_wallet(1080, 2160), ONBOARDING / "slide-wallet.png")
+    write_png(make_onboarding_scan(1080, 2160), ONBOARDING / "slide-scan.png")
 
 
 if __name__ == "__main__":

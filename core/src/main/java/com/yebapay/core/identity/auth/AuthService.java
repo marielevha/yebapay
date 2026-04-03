@@ -13,12 +13,15 @@ import com.yebapay.core.identity.UserRole;
 import com.yebapay.core.identity.UserRoleId;
 import com.yebapay.core.identity.UserRoleRepository;
 import com.yebapay.core.identity.UserStatus;
+import com.yebapay.core.identity.auth.dto.AuthActionResponse;
 import com.yebapay.core.identity.auth.dto.AuthResponse;
 import com.yebapay.core.identity.auth.dto.CurrentUserResponse;
 import com.yebapay.core.identity.auth.dto.LoginRequest;
 import com.yebapay.core.identity.auth.dto.RefreshTokenRequest;
 import com.yebapay.core.identity.auth.dto.RegisterRequest;
+import com.yebapay.core.identity.auth.dto.SetupTransactionPinRequest;
 import com.yebapay.core.merchant.MerchantProfileRepository;
+import com.yebapay.core.transaction.TransactionPinService;
 import com.yebapay.core.wallet.WalletRepository;
 import com.yebapay.core.wallet.WalletService;
 import java.time.Instant;
@@ -52,6 +55,7 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final RefreshTokenService refreshTokenService;
+    private final TransactionPinService transactionPinService;
 
     @Transactional
     public AuthResponse register(RegisterRequest request, ClientRequestDetails requestDetails) {
@@ -133,6 +137,12 @@ public class AuthService {
     @Transactional
     public void logout(RefreshTokenRequest request) {
         refreshTokenService.revokeFamilyByRawToken(request.refreshToken(), "User logout");
+    }
+
+    @Transactional
+    public AuthActionResponse setupTransactionPin(AuthenticatedUser principal, SetupTransactionPinRequest request) {
+        transactionPinService.setupInitialPin(principal.getUserId(), request.pin());
+        return new AuthActionResponse("Transaction PIN configured successfully.");
     }
 
     @Transactional(readOnly = true)
