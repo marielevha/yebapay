@@ -61,12 +61,7 @@ export default function VerifyOtpScreen() {
         },
       });
     } catch (error) {
-      setErrorMessage(
-        getAuthErrorMessage(error, {
-          genericMessage: t('auth.errors.generic'),
-          networkMessage: t('auth.errors.network'),
-        })
-      );
+      setErrorMessage(getAuthErrorMessage(error, { context: 'verifyOtp', t }));
     } finally {
       setSubmitting(false);
     }
@@ -88,12 +83,7 @@ export default function VerifyOtpScreen() {
       setInfoMessage(t('auth.messages.otpResent'));
       setOtpCode('');
     } catch (error) {
-      setErrorMessage(
-        getAuthErrorMessage(error, {
-          genericMessage: t('auth.errors.generic'),
-          networkMessage: t('auth.errors.network'),
-        })
-      );
+      setErrorMessage(getAuthErrorMessage(error, { context: 'forgotPassword', t }));
     } finally {
       setResending(false);
     }

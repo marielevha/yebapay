@@ -74,8 +74,22 @@ public class TransferService {
     }
 
     @Transactional(readOnly = true)
-    public List<TransactionSummaryResponse> getRecentTransactions(UUID userId) {
-        return transactionRepository.findRecentForUser(userId, PageRequest.of(0, 50)).stream()
+    public List<TransactionSummaryResponse> getRecentTransactions(
+        UUID userId,
+        int page,
+        int size,
+        UUID walletId,
+        TransactionType transactionType
+    ) {
+        int normalizedPage = Math.max(page, 0);
+        int normalizedSize = Math.min(Math.max(size, 1), 50);
+
+        return transactionRepository.findRecentForUserFiltered(
+                userId,
+                walletId,
+                transactionType,
+                PageRequest.of(normalizedPage, normalizedSize)
+            ).stream()
             .map(transaction -> toTransactionSummary(transaction, userId))
             .toList();
     }

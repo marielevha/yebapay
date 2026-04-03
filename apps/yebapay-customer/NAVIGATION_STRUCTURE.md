@@ -22,7 +22,7 @@ YebaPay n'est pas une banque mobile generique. La navigation doit rester:
   - paiement marchand
   - reglement d'une demande
   - affichage du QR personnel
-- `Activite`
+- `Transactions`
   - historique
   - recus
   - demandes en attente
@@ -37,7 +37,7 @@ YebaPay n'est pas une banque mobile generique. La navigation doit rester:
 - `Transferer`, `Demander`, `Payer` et `Mon QR` sont des actions, pas des tabs.
 - les mettre en tabs rendrait l'app trop lourde pour un MVP
 - `Scanner` reste visible en permanence parce que c'est le geste cle de YebaPay
-- `Activite` permet de regrouper l'historique et les demandes sans dupliquer les entrees
+- `Transactions` permet de regrouper l'historique et les demandes sans dupliquer les entrees
 - `Profil` porte les reglages, la securite et les fonctions secondaires
 
 ## Ecrans secondaires a porter ensuite en stack
@@ -54,7 +54,7 @@ YebaPay n'est pas une banque mobile generique. La navigation doit rester:
 - `Accueil`
   - `GET /wallets/me`
   - `GET /auth/me`
-- `Activite`
+- `Transactions`
   - `GET /wallets/me/transactions`
   - `GET /money-requests/me`
 - `Scanner`

@@ -117,7 +117,34 @@ export const translations = {
       errors: {
         generic: 'Une erreur est survenue. Reessayez.',
         network: 'Impossible de joindre le serveur. Verifiez votre connexion.',
+        server: 'Le service est temporairement indisponible. Reessayez dans un instant.',
+        tooManyAttempts: 'Trop de tentatives. Patientez un instant avant de reessayer.',
+        sessionExpired: 'Votre session a expire. Reconnectez-vous pour continuer.',
         pinMismatch: 'Les deux PIN ne correspondent pas.',
+        login: {
+          invalidCredentials: 'Numero de telephone ou mot de passe incorrect.',
+          accountInactive: "Ce compte n'est pas actif. Contactez le support si besoin.",
+          accountLocked: 'Ce compte est temporairement verrouille. Reessayez plus tard.',
+        },
+        register: {
+          phoneAlreadyRegistered: 'Ce numero est deja utilise par un autre compte.',
+          emailAlreadyRegistered: 'Cette adresse email est deja utilisee.',
+          invalidData: 'Certaines informations sont invalides. Verifiez le formulaire.',
+        },
+        forgotPassword: {
+          invalidPhone: 'Entrez un numero de telephone valide pour recevoir le code.',
+        },
+        verifyOtp: {
+          invalidCode: 'Le code saisi est invalide ou a expire.',
+        },
+        resetPassword: {
+          invalidToken: 'Le lien ou la session de reinitialisation a expire. Recommencez la procedure.',
+          invalidPassword: 'Le nouveau mot de passe ne peut pas etre utilise tel quel.',
+        },
+        secureWallet: {
+          pinAlreadyConfigured: 'Un PIN transactionnel existe deja pour ce compte.',
+          invalidPin: 'Le PIN doit etre valide avant de pouvoir continuer.',
+        },
       },
       fields: {
         firstName: 'Prenom',
@@ -144,70 +171,73 @@ export const translations = {
     tabs: {
       home: 'Accueil',
       scanner: 'Scanner',
-      activity: 'Activite',
+      transactions: 'Transactions',
       profile: 'Profil',
     },
     home: {
-      hero: {
-        body: 'Le wallet QR du quotidien. Une base mobile claire pour transferer, demander et payer.',
-        pillars: {
-          fees: 'Frais visibles',
-          fast: 'Paiement rapide',
-          history: 'Historique clair',
+      header: {
+        eyebrow: 'Bon retour',
+      },
+      wallets: {
+        retry: 'Reessayer',
+        empty: 'Aucun wallet disponible pour le moment.',
+        messages: {
+          loading: 'Chargement des wallets...',
+          genericError: 'Impossible de charger les wallets.',
+          networkError: 'Connexion impossible. Reessayez.',
+        },
+        types: {
+          personal: 'Wallet principal',
+          merchant: 'Wallet marchand',
+          agent: 'Wallet agent',
+          system: 'Wallet systeme',
         },
       },
-      balance: {
-        title: 'Solde principal',
-        subtitle: "Carte d'accueil prete a etre branchee sur GET /wallets/me",
-        lastActivityLabel: 'Derniere activite',
-        lastActivityValue: 'P2P + paiement marchand',
+      actions: {
+        scanPay: 'Scan & Pay',
+        topUp: 'Recharger',
+        request: 'Demander',
+        transfer: 'Transferer',
       },
-      quickActions: {
-        title: 'Raccourcis',
-        subtitle: 'Les parcours deja portes par le backend deviennent des tuiles claires ici.',
-        payByQr: {
-          title: 'Payer par QR',
-          description: 'Scanner un QR marchand ou une demande de paiement.',
+      transactions: {
+        title: 'Transactions',
+        seeAll: 'Tout voir',
+        retry: 'Reessayer',
+        empty: 'Aucune transaction recente pour le moment.',
+        messages: {
+          loading: 'Chargement des transactions...',
+          genericError: 'Impossible de charger les transactions.',
+          networkError: 'Connexion impossible. Reessayez.',
         },
-        send: {
-          title: 'Envoyer',
-          description: 'Transferer des fonds entre particuliers avec idempotence.',
+        types: {
+          p2pTransferOut: 'Transfert envoye',
+          p2pTransferIn: 'Transfert recu',
+          merchantPayment: 'Paiement marchand',
+          cashIn: 'Rechargement wallet',
+          cashOut: 'Retrait',
+          moneyRequest: "Demande d'argent",
+          refund: 'Remboursement',
+          adminAdjustment: 'Ajustement',
         },
-        request: {
-          title: 'Demander',
-          description: "Creer une demande d'argent payable tout de suite ou plus tard.",
-        },
-        receive: {
-          title: 'Recevoir',
-          description: 'Partager un QR personnel pour etre paye plus vite.',
-        },
-      },
-      backend: {
-        title: 'Pret cote backend',
-        subtitle: 'Cette premiere home met en avant ce qui est deja branchable sans inventer de faux flux.',
         items: {
-          auth: 'Authentification + refresh token',
-          wallet: 'Wallet + historique',
-          p2p: 'Transfert P2P avec ledger',
-          request: "Demande d'argent",
-          merchant: 'Paiement marchand',
-          qr: 'QR decode et verification',
-        },
-      },
-      promise: {
-        title: 'Pourquoi ca change',
-        subtitle: 'Le branding doit soutenir une promesse simple: moins de friction, plus de lisibilite.',
-        visibleFees: {
-          title: 'Frais visibles',
-          description: 'Le montant, les frais et le net credite restent lisibles avant confirmation.',
-        },
-        counterFast: {
-          title: 'Rapide au comptoir',
-          description: 'Le parcours QR est pense pour payer en quelques etapes, pas en plusieurs menus.',
-        },
-        traceable: {
-          title: 'Flux tracables',
-          description: "Le backend garde l'historique transactionnel et comptable comme source de verite.",
+          market: {
+            title: 'Epicerie Mbolo',
+            subtitle: 'Paiement marchand',
+            amount: '-12 500 FCFA',
+            time: '09:39',
+          },
+          philip: {
+            title: 'Philip',
+            subtitle: 'Transfert recu',
+            amount: '+8 000 FCFA',
+            time: '08:52',
+          },
+          cashIn: {
+            title: 'Rechargement wallet',
+            subtitle: 'Cash-in agent',
+            amount: '+20 000 FCFA',
+            time: 'Hier',
+          },
         },
       },
     },
@@ -252,56 +282,35 @@ export const translations = {
         pin: 'Reconfirmer les operations sensibles avec le PIN transactionnel.',
       },
     },
-    activity: {
-      hero: {
-        eyebrow: 'Onglet activite',
-        title: 'Historique clair, recus visibles.',
-        description:
-          "Cet onglet doit porter les transactions, les demandes d'argent et les etats utiles sans ressembler a un dashboard bancaire surcharge.",
+    transactionsPage: {
+      topBar: {
+        eyebrow: 'Historique du wallet',
       },
-      stats: {
-        today: "Aujourd'hui",
-        todayValue: '3 operations',
-        pending: 'En attente',
-        pendingValue: '2 demandes',
+      retry: 'Reessayer',
+      header: {
+        title: 'Transactions',
+        description: 'Retrouvez ici vos paiements, transferts et mouvements wallet dans une seule liste claire.',
       },
-      transactions: {
-        title: 'Derniers mouvements',
-        subtitle: 'GET /wallets/me/transactions',
-        sent: {
-          title: 'Transfert envoye',
-          subtitle: 'Vers Nadine Tati',
-          status: 'Reussi',
-        },
-        requestPaid: {
-          title: 'Demande reglee',
-          subtitle: 'Remboursement recu',
-          status: 'Credite',
-        },
-        merchantPayment: {
-          title: 'Paiement marchand',
-          subtitle: 'Chez Maeva',
-          status: 'Confirme',
-        },
+      summary: {
+        title: 'Historique du wallet',
+        subtitle: '{{count}} operation(s) disponible(s)',
       },
-      requests: {
-        title: 'Demandes en cours',
-        subtitle: 'GET /money-requests/me',
-        transport: {
-          title: 'Remboursement transport',
-          subtitle: 'En attente de paiement',
-        },
-        birthday: {
-          title: 'Participation anniversaire',
-          subtitle: 'Expire dans 1 h 40',
-        },
+      filters: {
+        walletLabel: 'Wallet',
+        walletTitle: 'Choisir un wallet',
+        allWallets: 'Tous les wallets',
+        typeLabel: 'Type',
+        typeTitle: 'Choisir un type',
+        allTypes: 'Tous les types',
       },
-      pattern: {
-        title: 'Structure recommandee',
-        timeline: 'Une timeline simple pour les transactions.',
-        requests: 'Un bloc dedie aux demandes en attente ou a payer.',
-        receipts: 'Des recus lisibles, pas des graphiques inutiles.',
+      messages: {
+        loading: 'Chargement des transactions...',
+        loadingMore: 'Chargement de la suite...',
+        genericError: 'Impossible de charger les transactions.',
+        networkError: 'Connexion impossible. Reessayez.',
+        endReached: 'Fin de la timeline.',
       },
+      emptyFiltered: 'Aucune transaction ne correspond aux filtres selectionnes.',
     },
     profile: {
       hero: {
@@ -466,7 +475,34 @@ export const translations = {
       errors: {
         generic: 'Something went wrong. Please try again.',
         network: 'Unable to reach the server. Check your connection.',
+        server: 'The service is temporarily unavailable. Please try again shortly.',
+        tooManyAttempts: 'Too many attempts. Please wait a moment before trying again.',
+        sessionExpired: 'Your session has expired. Sign in again to continue.',
         pinMismatch: 'The two PIN codes do not match.',
+        login: {
+          invalidCredentials: 'The phone number or password is incorrect.',
+          accountInactive: 'This account is not active yet. Contact support if needed.',
+          accountLocked: 'This account is temporarily locked. Please try again later.',
+        },
+        register: {
+          phoneAlreadyRegistered: 'This phone number is already used by another account.',
+          emailAlreadyRegistered: 'This email address is already in use.',
+          invalidData: 'Some information is invalid. Please review the form.',
+        },
+        forgotPassword: {
+          invalidPhone: 'Enter a valid phone number to receive the code.',
+        },
+        verifyOtp: {
+          invalidCode: 'The code is invalid or has expired.',
+        },
+        resetPassword: {
+          invalidToken: 'This reset session has expired. Please start the process again.',
+          invalidPassword: 'The new password cannot be used as entered.',
+        },
+        secureWallet: {
+          pinAlreadyConfigured: 'A transaction PIN is already configured for this account.',
+          invalidPin: 'The PIN must be valid before you can continue.',
+        },
       },
       fields: {
         firstName: 'First name',
@@ -493,70 +529,73 @@ export const translations = {
     tabs: {
       home: 'Home',
       scanner: 'Scan',
-      activity: 'Activity',
+      transactions: 'Transactions',
       profile: 'Profile',
     },
     home: {
-      hero: {
-        body: 'The everyday QR wallet. A clear mobile base to send, request and pay.',
-        pillars: {
-          fees: 'Visible fees',
-          fast: 'Fast payments',
-          history: 'Clear history',
+      header: {
+        eyebrow: 'Welcome back',
+      },
+      wallets: {
+        retry: 'Retry',
+        empty: 'No wallet available yet.',
+        messages: {
+          loading: 'Loading wallets...',
+          genericError: 'Unable to load wallets.',
+          networkError: 'Unable to connect. Please try again.',
+        },
+        types: {
+          personal: 'Main wallet',
+          merchant: 'Merchant wallet',
+          agent: 'Agent wallet',
+          system: 'System wallet',
         },
       },
-      balance: {
-        title: 'Main balance',
-        subtitle: 'Home card ready to connect to GET /wallets/me',
-        lastActivityLabel: 'Last activity',
-        lastActivityValue: 'P2P + merchant payment',
+      actions: {
+        scanPay: 'Scan & Pay',
+        topUp: 'Top up',
+        request: 'Request',
+        transfer: 'Transfer',
       },
-      quickActions: {
-        title: 'Quick actions',
-        subtitle: 'Flows already supported by the backend become clear tiles here.',
-        payByQr: {
-          title: 'Pay by QR',
-          description: 'Scan a merchant QR or a payment request.',
+      transactions: {
+        title: 'Transactions',
+        seeAll: 'See all',
+        retry: 'Retry',
+        empty: 'No recent transactions yet.',
+        messages: {
+          loading: 'Loading transactions...',
+          genericError: 'Unable to load transactions.',
+          networkError: 'Unable to connect. Please try again.',
         },
-        send: {
-          title: 'Send',
-          description: 'Transfer funds between individuals with idempotency.',
+        types: {
+          p2pTransferOut: 'Transfer sent',
+          p2pTransferIn: 'Transfer received',
+          merchantPayment: 'Merchant payment',
+          cashIn: 'Wallet top up',
+          cashOut: 'Cash out',
+          moneyRequest: 'Money request',
+          refund: 'Refund',
+          adminAdjustment: 'Adjustment',
         },
-        request: {
-          title: 'Request',
-          description: 'Create a money request payable now or later.',
-        },
-        receive: {
-          title: 'Receive',
-          description: 'Share a personal QR to get paid faster.',
-        },
-      },
-      backend: {
-        title: 'Backend ready',
-        subtitle: 'This first home screen highlights what is already connectable without fake flows.',
         items: {
-          auth: 'Authentication + refresh token',
-          wallet: 'Wallet + history',
-          p2p: 'P2P transfer with ledger',
-          request: 'Money request',
-          merchant: 'Merchant payment',
-          qr: 'QR decode and verification',
-        },
-      },
-      promise: {
-        title: 'Why it matters',
-        subtitle: 'Branding should support one simple promise: less friction, more clarity.',
-        visibleFees: {
-          title: 'Visible fees',
-          description: 'Amount, fees and net credited remain easy to read before confirmation.',
-        },
-        counterFast: {
-          title: 'Fast at the counter',
-          description: 'The QR flow is designed for a few steps, not several menus.',
-        },
-        traceable: {
-          title: 'Traceable flows',
-          description: 'The backend keeps transactional and accounting history as the source of truth.',
+          market: {
+            title: 'Mbolo Grocery',
+            subtitle: 'Merchant payment',
+            amount: '-12,500 XAF',
+            time: '09:39 AM',
+          },
+          philip: {
+            title: 'Philip',
+            subtitle: 'Transfer received',
+            amount: '+8,000 XAF',
+            time: '08:52 AM',
+          },
+          cashIn: {
+            title: 'Wallet top up',
+            subtitle: 'Agent cash-in',
+            amount: '+20,000 XAF',
+            time: 'Yesterday',
+          },
         },
       },
     },
@@ -602,56 +641,35 @@ export const translations = {
         pin: 'Reconfirm sensitive operations with the transaction PIN.',
       },
     },
-    activity: {
-      hero: {
-        eyebrow: 'Activity tab',
-        title: 'Clear history, readable receipts.',
-        description:
-          'This tab should carry transactions, money requests and useful states without feeling like an overloaded banking dashboard.',
+    transactionsPage: {
+      topBar: {
+        eyebrow: 'Wallet history',
       },
-      stats: {
-        today: 'Today',
-        todayValue: '3 operations',
-        pending: 'Pending',
-        pendingValue: '2 requests',
+      retry: 'Retry',
+      header: {
+        title: 'Transactions',
+        description: 'See your payments, transfers and wallet movements in one clear list.',
       },
-      transactions: {
-        title: 'Latest activity',
-        subtitle: 'GET /wallets/me/transactions',
-        sent: {
-          title: 'Transfer sent',
-          subtitle: 'To Nadine Tati',
-          status: 'Success',
-        },
-        requestPaid: {
-          title: 'Request paid',
-          subtitle: 'Refund received',
-          status: 'Credited',
-        },
-        merchantPayment: {
-          title: 'Merchant payment',
-          subtitle: 'Chez Maeva',
-          status: 'Confirmed',
-        },
+      summary: {
+        title: 'Wallet history',
+        subtitle: '{{count}} operation(s) available',
       },
-      requests: {
-        title: 'Current requests',
-        subtitle: 'GET /money-requests/me',
-        transport: {
-          title: 'Transport refund',
-          subtitle: 'Waiting for payment',
-        },
-        birthday: {
-          title: 'Birthday contribution',
-          subtitle: 'Expires in 1h 40m',
-        },
+      filters: {
+        walletLabel: 'Wallet',
+        walletTitle: 'Choose a wallet',
+        allWallets: 'All wallets',
+        typeLabel: 'Type',
+        typeTitle: 'Choose a type',
+        allTypes: 'All types',
       },
-      pattern: {
-        title: 'Recommended structure',
-        timeline: 'A simple timeline for transactions.',
-        requests: 'A dedicated block for pending or payable requests.',
-        receipts: 'Readable receipts, not unnecessary charts.',
+      messages: {
+        loading: 'Loading transactions...',
+        loadingMore: 'Loading more...',
+        genericError: 'Unable to load transactions.',
+        networkError: 'Connection unavailable. Try again.',
+        endReached: 'End of timeline.',
       },
+      emptyFiltered: 'No transaction matches the selected filters.',
     },
     profile: {
       hero: {

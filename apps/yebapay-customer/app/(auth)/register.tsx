@@ -49,12 +49,7 @@ export default function RegisterScreen() {
       });
       router.push('/(auth)/secure-wallet');
     } catch (error) {
-      setErrorMessage(
-        getAuthErrorMessage(error, {
-          genericMessage: t('auth.errors.generic'),
-          networkMessage: t('auth.errors.network'),
-        })
-      );
+      setErrorMessage(getAuthErrorMessage(error, { context: 'register', t }));
     } finally {
       setSubmitting(false);
     }

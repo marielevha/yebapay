@@ -1,428 +1,716 @@
 import { MaterialIcons } from '@expo/vector-icons';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import type { ComponentProps } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { BrandMark } from '@/components/brand-mark';
+import { AppTopBar } from '@/components/navigation/app-top-bar';
 import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Brand, BrandShadow } from '@/constants/brand';
+import { Brand, BrandColors, BrandShadow } from '@/constants/brand';
 import { Colors } from '@/constants/theme';
+import { useHomeWallets } from '@/features/wallet/use-home-wallets';
+import { useHomeTransactions } from '@/features/wallet/use-home-transactions';
+import { presentTransaction } from '@/features/wallet/transaction-presenter';
+import type { WalletDetails } from '@/features/wallet/wallet.types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useI18n } from '@/i18n/provider';
+import { useSession } from '@/providers/session-provider';
 
-const QUICK_ACTIONS = [
+type ActionItem = {
+  icon: ComponentProps<typeof MaterialIcons>['name'];
+  labelKey: string;
+  route?: '/(tabs)/scanner' | '/(tabs)/transactions' | '/(tabs)/profile';
+};
+
+const ACTIONS: ActionItem[] = [
   {
     icon: 'qr-code-scanner',
-    titleKey: 'home.quickActions.payByQr.title',
-    descriptionKey: 'home.quickActions.payByQr.description',
+    labelKey: 'home.actions.scanPay',
+    route: '/(tabs)/scanner',
   },
   {
-    icon: 'swap-horiz',
-    titleKey: 'home.quickActions.send.title',
-    descriptionKey: 'home.quickActions.send.description',
+    icon: 'arrow-downward',
+    labelKey: 'home.actions.topUp',
   },
   {
     icon: 'request-page',
-    titleKey: 'home.quickActions.request.title',
-    descriptionKey: 'home.quickActions.request.description',
+    labelKey: 'home.actions.request',
+    route: '/(tabs)/transactions',
   },
   {
-    icon: 'badge',
-    titleKey: 'home.quickActions.receive.title',
-    descriptionKey: 'home.quickActions.receive.description',
+    icon: 'swap-horiz',
+    labelKey: 'home.actions.transfer',
+    route: '/(tabs)/transactions',
   },
-] as const;
+];
 
-const BACKEND_ITEM_KEYS = [
-  'home.backend.items.auth',
-  'home.backend.items.wallet',
-  'home.backend.items.p2p',
-  'home.backend.items.request',
-  'home.backend.items.merchant',
-  'home.backend.items.qr',
-] as const;
+const CARD_PATTERN_DOTS = Array.from({ length: 18 }, (_, index) => ({
+  key: `dot-${index}`,
+  top: Math.floor(index / 6) * 15,
+  left: (index % 6) * 15,
+  opacity: [0.16, 0.24, 0.34, 0.48, 0.28, 0.18][index % 6],
+}));
 
-const HERO_PILLAR_KEYS = [
-  'home.hero.pillars.fees',
-  'home.hero.pillars.fast',
-  'home.hero.pillars.history',
-] as const;
+function getWalletTypeLabel(walletType: WalletDetails['walletType'], t: (key: string) => string) {
+  switch (walletType) {
+    case 'MERCHANT':
+      return t('home.wallets.types.merchant');
+    case 'AGENT':
+      return t('home.wallets.types.agent');
+    case 'SYSTEM':
+      return t('home.wallets.types.system');
+    case 'PERSONAL':
+    default:
+      return t('home.wallets.types.personal');
+  }
+}
 
-const PROMISE_CARDS = [
-  {
-    icon: 'visibility',
-    titleKey: 'home.promise.visibleFees.title',
-    descriptionKey: 'home.promise.visibleFees.description',
-  },
-  {
-    icon: 'bolt',
-    titleKey: 'home.promise.counterFast.title',
-    descriptionKey: 'home.promise.counterFast.description',
-  },
-  {
-    icon: 'history',
-    titleKey: 'home.promise.traceable.title',
-    descriptionKey: 'home.promise.traceable.description',
-  },
-] as const;
+function formatWalletBalance(wallet: WalletDetails, language: string) {
+  const locale = language === 'en' ? 'en-US' : 'fr-FR';
+  const amount = wallet.availableBalance ?? 0;
+  const formatter = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+  });
 
-const BALANCE_PREVIEW = {
-  total: '24 350 FCFA',
-  available: '24 350 FCFA',
-} as const;
+  return `${formatter.format(amount)} ${wallet.currencyDisplayCode}`;
+}
+
+function maskWalletNumber(walletNumber: string) {
+  const compactValue = walletNumber.replace(/\s+/g, '');
+
+  if (!compactValue) {
+    return '••••';
+  }
+
+  if (compactValue.length <= 4) {
+    return compactValue;
+  }
+
+  return `•••• ${compactValue.slice(-4)}`;
+}
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
-  const { t } = useI18n();
+  const { t, language } = useI18n();
+  const { user } = useSession();
+  const { width: screenWidth } = useWindowDimensions();
+  const [activeWalletIndex, setActiveWalletIndex] = useState(0);
+  const { wallets, isLoading: isLoadingWallets, errorMessage: walletErrorMessage, reload: reloadWallets } =
+    useHomeWallets();
+  const { transactions: recentTransactions, isLoading, errorMessage, reload } = useHomeTransactions();
 
-  const quickActions = QUICK_ACTIONS.map((action) => ({
-    ...action,
-    title: t(action.titleKey),
-    description: t(action.descriptionKey),
+  const hasMultipleWallets = wallets.length > 1;
+  const walletCardWidth = Math.max(
+    280,
+    hasMultipleWallets ? Math.min(screenWidth - 56, 380) : screenWidth - 32
+  );
+  const walletSnapInterval = walletCardWidth + 12;
+
+  useEffect(() => {
+    setActiveWalletIndex((currentIndex) => {
+      if (wallets.length === 0) {
+        return 0;
+      }
+
+      return Math.min(currentIndex, wallets.length - 1);
+    });
+  }, [wallets.length]);
+
+  const actions = ACTIONS.map((item) => ({
+    ...item,
+    label: t(item.labelKey),
   }));
-  const backendReadiness = BACKEND_ITEM_KEYS.map((key) => t(key));
-  const heroPillars = HERO_PILLAR_KEYS.map((key) => t(key));
-  const promiseCards = PROMISE_CARDS.map((card) => ({
-    ...card,
-    title: t(card.titleKey),
-    description: t(card.descriptionKey),
-  }));
+  const transactions = useMemo(
+    () => recentTransactions.map((transaction) => presentTransaction(transaction, t, language)),
+    [language, recentTransactions, t]
+  );
+
+  const handleWalletScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (!hasMultipleWallets) {
+      return;
+    }
+
+    const nextIndex = Math.round(event.nativeEvent.contentOffset.x / walletSnapInterval);
+    setActiveWalletIndex(Math.max(0, Math.min(nextIndex, wallets.length - 1)));
+  };
 
   return (
-    <ThemedView style={styles.screen}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={[styles.heroCard, { backgroundColor: palette.hero }, BrandShadow.card]}>
-          <View style={[styles.heroGlowPrimary, { backgroundColor: palette.heroSecondary }]} />
-          <View style={[styles.heroGlowSecondary, { backgroundColor: palette.warning }]} />
+    <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: palette.background }]}>
+      <AppTopBar
+        backgroundColor={palette.background}
+        surfaceColor={palette.surface}
+        borderColor={palette.border}
+        textMutedColor={palette.textMuted}
+        textColor={palette.text}
+        eyebrow={t('home.header.eyebrow')}
+        displayName={user?.displayName?.trim() || Brand.name}
+        onProfilePress={() => router.push('/(tabs)/profile')}
+        onActionPress={() => router.push('/(tabs)/transactions')}
+      />
 
-          <View style={styles.heroHeader}>
-            <BrandMark size={58} />
-            <View style={styles.heroHeaderCopy}>
-              <ThemedText type="eyebrow" lightColor={palette.heroText} darkColor={palette.heroText}>
-                {t('common.walletQr')}
-              </ThemedText>
-              <ThemedText
-                type="sectionTitle"
-                lightColor={palette.heroText}
-                darkColor={palette.heroText}>
-                {Brand.name}
-              </ThemedText>
-            </View>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled">
+        {isLoadingWallets ? (
+          <View style={[styles.walletCard, styles.walletStateCard, BrandShadow.card]}>
+            <ThemedText
+              type="bodySmall"
+              style={styles.walletStateText}
+              lightColor="rgba(255,255,255,0.76)"
+              darkColor="rgba(255,255,255,0.76)">
+              {t('home.wallets.messages.loading')}
+            </ThemedText>
           </View>
+        ) : walletErrorMessage ? (
+          <View style={[styles.walletCard, styles.walletStateCard, BrandShadow.card]}>
+            <ThemedText
+              type="bodySmall"
+              style={styles.walletStateText}
+              lightColor="rgba(255,255,255,0.76)"
+              darkColor="rgba(255,255,255,0.76)">
+              {walletErrorMessage}
+            </ThemedText>
+            <Pressable onPress={() => void reloadWallets()} hitSlop={8}>
+              <ThemedText type="link" lightColor={BrandColors.white} darkColor={BrandColors.white}>
+                {t('home.wallets.retry')}
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : wallets.length === 0 ? (
+          <View style={[styles.walletCard, styles.walletStateCard, BrandShadow.card]}>
+            <ThemedText
+              type="bodySmall"
+              style={styles.walletStateText}
+              lightColor="rgba(255,255,255,0.76)"
+              darkColor="rgba(255,255,255,0.76)">
+              {t('home.wallets.empty')}
+            </ThemedText>
+          </View>
+        ) : (
+          <>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              scrollEnabled={hasMultipleWallets}
+              pagingEnabled={false}
+              snapToInterval={hasMultipleWallets ? walletSnapInterval : undefined}
+              decelerationRate={hasMultipleWallets ? 'fast' : 'normal'}
+              snapToAlignment="start"
+              contentContainerStyle={styles.walletCarouselContent}
+              onMomentumScrollEnd={handleWalletScrollEnd}>
+              {wallets.map((wallet) => (
+                <View key={wallet.id} style={[styles.walletCard, { width: walletCardWidth }, BrandShadow.card]}>
+                  <View style={styles.walletGlowPrimary} />
+                  <View style={styles.walletGlowSecondary} />
+                  <View style={styles.walletPattern}>
+                    {CARD_PATTERN_DOTS.map((dot) => (
+                      <View
+                        key={`${wallet.id}-${dot.key}`}
+                        style={[
+                          styles.walletPatternDot,
+                          {
+                            top: dot.top,
+                            left: dot.left,
+                            opacity: dot.opacity,
+                          },
+                        ]}
+                      />
+                    ))}
+                  </View>
 
-          <ThemedText type="hero" lightColor={palette.heroText} darkColor={palette.heroText}>
-            {t('brand.slogan')}
-          </ThemedText>
-          <ThemedText
-            type="bodySmall"
-            style={styles.heroBody}
-            lightColor={palette.heroText}
-            darkColor={palette.heroText}>
-            {t('home.hero.body')}
-          </ThemedText>
+                  <View style={styles.walletHeader}>
+                    <View style={styles.walletBrandRow}>
+                      <Image
+                        source={require('../../assets/brand/yebapay-wordmark.png')}
+                        style={styles.walletWordmark}
+                        contentFit="contain"
+                      />
+                    </View>
 
-          <View style={styles.heroPills}>
-            {heroPillars.map((pillar) => (
-              <View
-                key={pillar}
-                style={[styles.heroPill, { backgroundColor: 'rgba(250, 250, 247, 0.14)' }]}>
-                <ThemedText type="bodySmall" lightColor={palette.heroText} darkColor={palette.heroText}>
-                  {pillar}
-                </ThemedText>
+                    <View style={styles.walletTypeBadge}>
+                      <ThemedText
+                        type="bodySmall"
+                        lightColor="rgba(255,255,255,0.84)"
+                        darkColor="rgba(255,255,255,0.84)">
+                        {getWalletTypeLabel(wallet.walletType, t)}
+                      </ThemedText>
+                    </View>
+                  </View>
+
+                  <View style={styles.walletBalanceBlock}>
+                    <ThemedText
+                      type="bodySmall"
+                      lightColor="rgba(255,255,255,0.72)"
+                      darkColor="rgba(255,255,255,0.72)">
+                      {t('common.available')}
+                    </ThemedText>
+                    <ThemedText
+                      type="balance"
+                      style={styles.walletBalance}
+                      lightColor={BrandColors.white}
+                      darkColor={BrandColors.white}>
+                      {formatWalletBalance(wallet, language)}
+                    </ThemedText>
+                  </View>
+
+                  <View style={styles.walletFooter}>
+                    <ThemedText
+                      type="defaultSemiBold"
+                      style={styles.walletNumber}
+                      lightColor="rgba(255,255,255,0.72)"
+                      darkColor="rgba(255,255,255,0.72)">
+                      {maskWalletNumber(wallet.walletNumber)}
+                    </ThemedText>
+
+                    <View style={styles.walletSignature}>
+                      <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerTopLeft]} />
+                      <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerTopRight]} />
+                      <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerBottomLeft]} />
+                      <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerBottomRight]} />
+                      <View style={styles.walletSignatureCore} />
+                    </View>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            {hasMultipleWallets ? (
+              <View style={styles.indicators}>
+                {wallets.map((wallet, index) => (
+                  <View
+                    key={wallet.id}
+                    style={index === activeWalletIndex ? styles.indicatorActive : styles.indicatorInactive}
+                  />
+                ))}
               </View>
-            ))}
-          </View>
-        </View>
+            ) : null}
+          </>
+        )}
 
-        <View style={styles.sectionHeader}>
-          <View>
-            <ThemedText type="sectionTitle">{t('home.balance.title')}</ThemedText>
-            <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-              {t('home.balance.subtitle')}
-            </ThemedText>
-          </View>
-          <View style={[styles.liveBadge, { backgroundColor: palette.card }]}>
-            <ThemedText type="eyebrow" lightColor={palette.tint} darkColor={palette.tint}>
-              {t('common.mvp')}
-            </ThemedText>
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.balanceCard,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.border,
-            },
-            BrandShadow.card,
-          ]}>
-          <View style={styles.balanceHeader}>
-            <View>
-              <ThemedText type="eyebrow" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-                {t('common.ordinaryAccount')}
-              </ThemedText>
-              <ThemedText type="balance">{BALANCE_PREVIEW.total}</ThemedText>
-            </View>
-            <View style={[styles.balanceIconWrap, { backgroundColor: palette.card }]}>
-              <MaterialIcons name="account-balance-wallet" size={26} color={palette.tint} />
-            </View>
-          </View>
-
-          <View style={styles.balanceStats}>
-            <View style={styles.balanceStat}>
-              <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-                {t('common.available')}
-              </ThemedText>
-              <ThemedText type="defaultSemiBold">{BALANCE_PREVIEW.available}</ThemedText>
-            </View>
-            <View style={styles.balanceStat}>
-              <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-                {t('home.balance.lastActivityLabel')}
-              </ThemedText>
-              <ThemedText type="defaultSemiBold">{t('home.balance.lastActivityValue')}</ThemedText>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <View>
-            <ThemedText type="sectionTitle">{t('home.quickActions.title')}</ThemedText>
-            <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-              {t('home.quickActions.subtitle')}
-            </ThemedText>
-          </View>
-        </View>
-
-        <View style={styles.quickGrid}>
-          {quickActions.map((action) => (
-            <View
-              key={action.titleKey}
-              style={[
-                styles.quickCard,
-                {
-                  backgroundColor: palette.surface,
-                  borderColor: palette.border,
-                },
-              ]}>
-              <View style={[styles.quickIconWrap, { backgroundColor: palette.card }]}>
-                <MaterialIcons name={action.icon} size={26} color={palette.tint} />
-              </View>
-              <ThemedText type="defaultSemiBold">{action.title}</ThemedText>
-              <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-                {action.description}
-              </ThemedText>
-            </View>
+        <View style={styles.actionsRow}>
+          {actions.map((action) => (
+            <Pressable
+              key={action.labelKey}
+              onPress={() => {
+                if (action.route) {
+                  router.push(action.route);
+                }
+              }}
+              style={styles.actionItem}>
+              {({ pressed }) => (
+                <>
+                  <View
+                    style={[
+                      styles.actionIconWrap,
+                      {
+                        backgroundColor: BrandColors.white,
+                        borderColor: pressed ? palette.tint : palette.border,
+                        transform: [{ scale: pressed ? 0.96 : 1 }],
+                        opacity: pressed ? 0.95 : 1,
+                      },
+                      BrandShadow.card,
+                    ]}>
+                    <MaterialIcons name={action.icon} size={24} color={palette.tint} />
+                  </View>
+                  <ThemedText type="bodySmall" style={styles.actionLabel}>
+                    {action.label}
+                  </ThemedText>
+                </>
+              )}
+            </Pressable>
           ))}
         </View>
 
         <View style={styles.sectionHeader}>
-          <View>
-            <ThemedText type="sectionTitle">{t('home.backend.title')}</ThemedText>
-            <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-              {t('home.backend.subtitle')}
+          <ThemedText type="sectionTitle">{t('home.transactions.title')}</ThemedText>
+          <Pressable onPress={() => router.push('/(tabs)/transactions')} hitSlop={8}>
+            <ThemedText
+              type="bodySmall"
+              lightColor={palette.tint}
+              darkColor={palette.tint}
+              style={styles.seeAllText}>
+              {t('home.transactions.seeAll')}
             </ThemedText>
-          </View>
+          </Pressable>
         </View>
 
-        <View
-          style={[
-            styles.backendCard,
-            {
-              backgroundColor: palette.surface,
-              borderColor: palette.border,
-            },
-          ]}>
-          {backendReadiness.map((item) => (
-            <View key={item} style={styles.backendRow}>
-              <View style={[styles.backendDot, { backgroundColor: palette.success }]} />
-              <ThemedText>{item}</ThemedText>
-            </View>
-          ))}
-        </View>
-
-        <View style={styles.sectionHeader}>
-          <View>
-            <ThemedText type="sectionTitle">{t('home.promise.title')}</ThemedText>
-            <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-              {t('home.promise.subtitle')}
-            </ThemedText>
-          </View>
-        </View>
-
-        {promiseCards.map((card) => (
+        {isLoading ? (
           <View
-            key={card.titleKey}
             style={[
-              styles.promiseCard,
+              styles.transactionStateCard,
               {
-                backgroundColor: palette.card,
+                backgroundColor: palette.surface,
                 borderColor: palette.border,
               },
+              BrandShadow.card,
             ]}>
-            <View style={[styles.promiseIconWrap, { backgroundColor: palette.surface }]}>
-              <MaterialIcons name={card.icon} size={24} color={palette.text} />
-            </View>
-            <View style={styles.promiseCopy}>
-              <ThemedText type="defaultSemiBold">{card.title}</ThemedText>
-              <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
-                {card.description}
-              </ThemedText>
-            </View>
+            <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
+              {t('home.transactions.messages.loading')}
+            </ThemedText>
           </View>
-        ))}
+        ) : errorMessage ? (
+          <View
+            style={[
+              styles.transactionStateCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+              },
+              BrandShadow.card,
+            ]}>
+            <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
+              {errorMessage}
+            </ThemedText>
+            <Pressable onPress={() => void reload()} hitSlop={8}>
+              <ThemedText type="link" lightColor={palette.tint} darkColor={palette.tint}>
+                {t('home.transactions.retry')}
+              </ThemedText>
+            </Pressable>
+          </View>
+        ) : transactions.length === 0 ? (
+          <View
+            style={[
+              styles.transactionStateCard,
+              {
+                backgroundColor: palette.surface,
+                borderColor: palette.border,
+              },
+              BrandShadow.card,
+            ]}>
+            <ThemedText type="bodySmall" lightColor={palette.textMuted} darkColor={palette.textMuted}>
+              {t('home.transactions.empty')}
+            </ThemedText>
+          </View>
+        ) : (
+          <View style={styles.transactionsCard}>
+            {transactions.map((item) => {
+              const amountColor = item.kind === 'credit' ? palette.success : palette.danger;
+              const dotColor = item.kind === 'credit' ? palette.success : palette.warning;
+              const avatarBackground =
+                item.kind === 'credit' ? 'rgba(30, 107, 91, 0.10)' : 'rgba(215, 154, 43, 0.12)';
+
+              return (
+                <View
+                  key={item.id}
+                  style={[
+                    styles.transactionItemCard,
+                    {
+                      backgroundColor: palette.surface,
+                      borderColor: palette.border,
+                    },
+                    BrandShadow.card,
+                  ]}>
+                  <View style={styles.transactionRow}>
+                    <View style={[styles.transactionAvatar, { backgroundColor: avatarBackground }]}>
+                      <MaterialIcons name={item.icon} size={20} color={palette.text} />
+                    </View>
+
+                    <View style={styles.transactionCopy}>
+                      <ThemedText type="defaultSemiBold" numberOfLines={1}>
+                        {item.title}
+                      </ThemedText>
+                      <View style={styles.transactionMeta}>
+                        <View style={[styles.transactionMetaDot, { backgroundColor: dotColor }]} />
+                        <ThemedText
+                          type="bodySmall"
+                          numberOfLines={1}
+                          lightColor={palette.textMuted}
+                          darkColor={palette.textMuted}>
+                          {item.subtitle}
+                        </ThemedText>
+                      </View>
+                    </View>
+
+                    <View style={styles.transactionAmountWrap}>
+                      <ThemedText
+                        type="defaultSemiBold"
+                        style={styles.transactionAmount}
+                        lightColor={amountColor}
+                        darkColor={amountColor}>
+                        {item.amount}
+                      </ThemedText>
+                      <ThemedText
+                        type="bodySmall"
+                        style={styles.transactionTime}
+                        lightColor={palette.textMuted}
+                        darkColor={palette.textMuted}>
+                        {item.time}
+                      </ThemedText>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </ScrollView>
-    </ThemedView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
+  safeArea: {
     flex: 1,
   },
   content: {
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 120,
-    gap: 18,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
+    gap: 20,
   },
-  heroCard: {
-    overflow: 'hidden',
+  walletCard: {
+    minHeight: 196,
     borderRadius: 28,
-    padding: 22,
-    gap: 18,
-    minHeight: 270,
+    padding: 20,
+    justifyContent: 'space-between',
+    overflow: 'hidden',
+    backgroundColor: BrandColors.ink,
   },
-  heroGlowPrimary: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    top: -80,
-    right: -50,
-    opacity: 0.18,
+  walletCarouselContent: {
+    gap: 12,
+    paddingRight: 4,
   },
-  heroGlowSecondary: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    bottom: -54,
-    left: -24,
-    opacity: 0.16,
-  },
-  heroHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-  },
-  heroHeaderCopy: {
-    gap: 2,
-  },
-  heroBody: {
-    maxWidth: '92%',
-    opacity: 0.9,
-  },
-  heroPills: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  walletStateCard: {
+    alignItems: 'flex-start',
+    justifyContent: 'center',
     gap: 10,
   },
-  heroPill: {
+  walletStateText: {
+    maxWidth: 240,
+  },
+  walletGlowPrimary: {
+    position: 'absolute',
+    top: -34,
+    right: -28,
+    width: 190,
+    height: 190,
+    borderRadius: 95,
+    backgroundColor: 'rgba(30, 107, 91, 0.48)',
+  },
+  walletGlowSecondary: {
+    position: 'absolute',
+    bottom: -52,
+    left: -20,
+    width: 174,
+    height: 174,
+    borderRadius: 87,
+    backgroundColor: 'rgba(215, 154, 43, 0.18)',
+  },
+  walletPattern: {
+    position: 'absolute',
+    top: 24,
+    right: 22,
+    width: 95,
+    height: 50,
+  },
+  walletPatternDot: {
+    position: 'absolute',
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: BrandColors.white,
+  },
+  walletHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  walletBrandRow: {
+    justifyContent: 'center',
+    marginLeft: -30,
+  },
+  walletWordmark: {
+    width: 168,
+    height: 43,
+    opacity: 0.98,
+  },
+  walletTypeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+  },
+  walletBalanceBlock: {
+    gap: 6,
+  },
+  walletBalance: {
+    fontSize: 34,
+    lineHeight: 38,
+  },
+  walletFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  walletNumber: {
+    letterSpacing: 1.5,
+  },
+  walletSignature: {
+    width: 44,
+    height: 30,
+    position: 'relative',
+    opacity: 0.92,
+  },
+  walletSignatureCorner: {
+    position: 'absolute',
+    width: 13,
+    height: 13,
+    borderColor: 'rgba(255,255,255,0.84)',
+  },
+  walletSignatureCornerTopLeft: {
+    top: 0,
+    left: 0,
+    borderTopWidth: 2.5,
+    borderLeftWidth: 2.5,
+    borderTopLeftRadius: 7,
+  },
+  walletSignatureCornerTopRight: {
+    top: 0,
+    right: 0,
+    borderTopWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderTopRightRadius: 7,
+  },
+  walletSignatureCornerBottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderBottomWidth: 2.5,
+    borderLeftWidth: 2.5,
+    borderBottomLeftRadius: 7,
+  },
+  walletSignatureCornerBottomRight: {
+    right: 0,
+    bottom: 0,
+    borderBottomWidth: 2.5,
+    borderRightWidth: 2.5,
+    borderBottomRightRadius: 7,
+  },
+  walletSignatureCore: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    width: 9,
+    height: 9,
+    marginLeft: -4.5,
+    marginTop: -4.5,
+    borderRadius: 4.5,
+    backgroundColor: BrandColors.sun,
+  },
+  indicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: -8,
+  },
+  indicatorActive: {
+    width: 18,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: BrandColors.palm,
+  },
+  indicatorInactive: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#D7D4CA',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  actionItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  actionIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  actionLabel: {
+    textAlign: 'center',
+    lineHeight: 18,
+    fontWeight: '600',
   },
   sectionHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  seeAllText: {
+    fontWeight: '700',
+  },
+  transactionsCard: {
+    gap: 12,
+  },
+  transactionStateCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 10,
+  },
+  transactionItemCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  transactionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 0,
+  },
+  transactionAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  transactionCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  transactionMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  transactionMetaDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  transactionAmountWrap: {
     alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 16,
-    marginTop: 4,
+    gap: 3,
   },
-  liveBadge: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  transactionAmount: {
+    textAlign: 'right',
   },
-  balanceCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    padding: 20,
-    gap: 18,
-  },
-  balanceHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  balanceIconWrap: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  balanceStats: {
-    flexDirection: 'row',
-    gap: 18,
-  },
-  balanceStat: {
-    flex: 1,
-    gap: 6,
-  },
-  quickGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  quickCard: {
-    width: '48%',
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 16,
-    gap: 12,
-  },
-  quickIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  backendCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 18,
-    gap: 14,
-  },
-  backendRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 999,
-  },
-  promiseCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    padding: 18,
-    flexDirection: 'row',
-    gap: 14,
-  },
-  promiseIconWrap: {
-    width: 46,
-    height: 46,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  promiseCopy: {
-    flex: 1,
-    gap: 6,
+  transactionTime: {
+    textAlign: 'right',
   },
 });

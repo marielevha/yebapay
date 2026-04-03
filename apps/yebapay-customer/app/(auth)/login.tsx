@@ -51,12 +51,7 @@ export default function LoginScreen() {
       });
       router.replace('/(tabs)');
     } catch (error) {
-      setErrorMessage(
-        getAuthErrorMessage(error, {
-          genericMessage: t('auth.errors.generic'),
-          networkMessage: t('auth.errors.network'),
-        })
-      );
+      setErrorMessage(getAuthErrorMessage(error, { context: 'login', t }));
     } finally {
       setSubmitting(false);
     }

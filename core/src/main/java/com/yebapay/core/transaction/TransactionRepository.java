@@ -27,6 +27,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
     List<Transaction> findRecentForUser(@Param("userId") UUID userId, Pageable pageable);
 
     @Query("""
+        select tx
+        from Transaction tx
+        where (tx.payerUser.id = :userId or tx.payeeUser.id = :userId)
+          and (:walletId is null or tx.sourceWallet.id = :walletId or tx.destinationWallet.id = :walletId)
+          and (:transactionType is null or tx.transactionType = :transactionType)
+        order by tx.initiatedAt desc
+        """)
+    List<Transaction> findRecentForUserFiltered(
+        @Param("userId") UUID userId,
+        @Param("walletId") UUID walletId,
+        @Param("transactionType") TransactionType transactionType,
+        Pageable pageable
+    );
+
+    @Query("""
         select coalesce(
             sum(
                 tx.amount +

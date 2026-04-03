@@ -342,25 +342,20 @@ def make_wordmark(width: int, height: int) -> Image.Image:
     draw_mark(
         canvas,
         badge_box,
-        card_fill=PALETTE["cloud"],
-        corner_color=PALETTE["ink"],
-        y_color=PALETTE["palm"],
+        card_fill=None,
+        corner_color=PALETTE["white"],
+        y_color=PALETTE["white"],
         dot_color=PALETTE["sun"],
-        hole_color=rgba(PALETTE["cloud"]),
+        hole_color=rgba(PALETTE["white"]),
     )
 
     draw = ImageDraw.Draw(canvas)
-    title_font = load_font(180, bold=True)
-    subtitle_font = load_font(46, bold=False)
+    title_font = load_font(196, bold=True)
     text_x = badge_box[2] + 56
-    title_y = badge_y + 34
-    draw.text((text_x, title_y), "YebaPay", fill=rgba(PALETTE["ink"]), font=title_font)
-    draw.text(
-        (text_x + 8, title_y + 190),
-        "Le wallet QR du quotidien.",
-        fill=rgba(PALETTE["palm"]),
-        font=subtitle_font,
-    )
+    title_bbox = draw.textbbox((0, 0), "YebaPay", font=title_font)
+    title_height = title_bbox[3] - title_bbox[1]
+    title_y = int((height - title_height) / 2 - 8)
+    draw.text((text_x, title_y), "YebaPay", fill=rgba(PALETTE["white"]), font=title_font)
     return canvas
 
 

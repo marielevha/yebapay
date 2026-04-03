@@ -52,7 +52,7 @@ La partie mobile a deja quitte le simple scaffold Expo :
 - shell Expo Router avec les onglets :
   - `Accueil`
   - `Scanner`
-  - `Activite`
+  - `Transactions`
   - `Profil`
 - ecrans auth poses et relies au backend :
   - login
@@ -62,11 +62,30 @@ La partie mobile a deja quitte le simple scaffold Expo :
   - reset password
   - succes de creation / reinitialisation
   - ecran `Securisez votre wallet` pour definir le PIN transactionnel apres inscription
+- formulaires auth simplifies et mieux adaptes aux petits ecrans
+- messages d'erreur auth plus clairs, localises et orientes utilisateur
 - session mobile branchee avec stockage local securise
 - restauration de session au lancement
 - deconnexion avec feedback visuel
 - logo et assets de marque adaptes a l'identite visuelle
 - generateur local d'assets via `npm run assets:brand`
+- `Accueil` reprise de zero avec :
+  - top bar fixe partage
+  - cards wallet reelles, scrollables horizontalement si le user a plusieurs wallets
+  - affichage du solde reel par wallet
+  - 10 dernieres transactions branchees au backend
+- page `Transactions` reprise de zero avec :
+  - top bar fixe
+  - filtre par wallet
+  - filtre par type de transaction
+  - timeline infinie par lots de 10
+  - pull-to-refresh
+  - affichage date + heure sur les cartes
+- support backend ajoute pour la pagination et le filtrage des transactions :
+  - `page`
+  - `size`
+  - `walletId`
+  - `transactionType`
 
 ## Fonctionnalites deja couvertes cote backend
 
@@ -92,7 +111,7 @@ La partie mobile a deja quitte le simple scaffold Expo :
 
 ### Mobile
 
-- remplacer progressivement les donnees de presentation par les vraies donnees backend sur `Accueil`, `Activite`, `Scanner` et `Profil`
+- poursuivre le branchement backend reel sur `Scanner` et `Profil`
 - integrer la camera pour le scan QR
 - construire les parcours metier complets autour du wallet :
   - transfert P2P

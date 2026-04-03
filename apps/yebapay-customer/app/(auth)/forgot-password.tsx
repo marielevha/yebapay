@@ -37,12 +37,7 @@ export default function ForgotPasswordScreen() {
         },
       });
     } catch (error) {
-      setErrorMessage(
-        getAuthErrorMessage(error, {
-          genericMessage: t('auth.errors.generic'),
-          networkMessage: t('auth.errors.network'),
-        })
-      );
+      setErrorMessage(getAuthErrorMessage(error, { context: 'forgotPassword', t }));
     } finally {
       setSubmitting(false);
     }

@@ -68,9 +68,9 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="activity"
+        name="transactions"
         options={{
-          title: t('tabs.activity'),
+          title: t('tabs.transactions'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="clock.fill" color={color} />,
         }}
       />

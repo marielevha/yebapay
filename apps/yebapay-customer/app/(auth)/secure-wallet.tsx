@@ -1,6 +1,6 @@
 import { Redirect, router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
 import { AuthFormAlert } from '@/components/auth/auth-form-alert';
 import { AuthField } from '@/components/auth/auth-field';
@@ -46,12 +46,7 @@ export default function SecureWalletScreen() {
       await setupTransactionPin({ pin: normalizedPin });
       router.push('/(auth)/account-created');
     } catch (error) {
-      setErrorMessage(
-        getAuthErrorMessage(error, {
-          genericMessage: t('auth.errors.generic'),
-          networkMessage: t('auth.errors.network'),
-        })
-      );
+      setErrorMessage(getAuthErrorMessage(error, { context: 'secureWallet', t }));
     } finally {
       setSubmitting(false);
     }
@@ -118,14 +113,6 @@ export default function SecureWalletScreen() {
 }
 
 const styles = StyleSheet.create({
-  noteCard: {
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    borderRadius: 16,
-    backgroundColor: '#F6FAF8',
-    borderWidth: 1,
-    borderColor: '#E2EBE5',
-  },
   skipLink: {
     textAlign: 'center',
   },

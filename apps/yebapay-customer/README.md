@@ -14,7 +14,7 @@ Application mobile Expo / React Native pour les parcours client YebaPay.
 - un shell Expo Router avec quatre onglets :
   - `Accueil`
   - `Scanner`
-  - `Activite`
+  - `Transactions`
   - `Profil`
 - un flux auth complet :
   - login
@@ -24,13 +24,28 @@ Application mobile Expo / React Native pour les parcours client YebaPay.
   - reset password
   - succes auth
   - ecran `Securisez votre wallet`
+- des ecrans auth simplifies et adaptes aux petits ecrans
+- des messages d'erreur auth plus lisibles et localises
 - une session branchee au backend avec stockage local securise
 - logout avec feedback visuel
+- une `home` refaite avec :
+  - top bar fixe partage
+  - wallets reels du backend
+  - carousel horizontal si plusieurs wallets
+  - solde reel sur chaque card
+  - 10 dernieres transactions
+- une page `Transactions` refaite avec :
+  - filtre wallet
+  - filtre type
+  - timeline continue avec infinite scroll
+  - pull-to-refresh
+  - date + heure sur les items
 
 ## Flux backend deja branchables
 
 - authentification et session
 - consultation wallet et historique
+- historique pagine avec filtres `page`, `size`, `walletId`, `transactionType`
 - transfert P2P
 - demande d'argent
 - paiement marchand
@@ -64,7 +79,7 @@ Cette commande regenera les fichiers suivants dans `assets/`:
 
 ## Prochaines etapes cote mobile
 
-- remplacer les donnees de presentation par des vraies reponses backend
+- poursuivre le branchement backend sur `Scanner` et `Profil`
 - integrer la camera pour le scan QR
 - brancher les parcours metier complets autour du wallet
 - ajouter un vrai ecran settings avec choix de langue
