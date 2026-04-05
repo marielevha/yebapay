@@ -62,6 +62,7 @@ function RootNavigator() {
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="transactions/[transactionId]" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="transfer" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen
           name="modal"

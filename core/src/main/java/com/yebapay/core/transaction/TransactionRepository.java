@@ -15,6 +15,21 @@ public interface TransactionRepository extends JpaRepository<Transaction, UUID> 
 
     Optional<Transaction> findByIdempotencyKey(String idempotencyKey);
 
+    @Query("""
+        select tx
+        from Transaction tx
+        left join fetch tx.sourceWallet
+        left join fetch tx.destinationWallet
+        left join fetch tx.payerUser payer
+        left join fetch tx.payeeUser payee
+        where tx.id = :transactionId
+          and (payer.id = :userId or payee.id = :userId)
+        """)
+    Optional<Transaction> findDetailsForUser(
+        @Param("userId") UUID userId,
+        @Param("transactionId") UUID transactionId
+    );
+
     List<Transaction> findTop50ByPayerUser_IdOrderByInitiatedAtDesc(UUID payerUserId);
 
     @Query("""

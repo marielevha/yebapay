@@ -93,7 +93,8 @@ export default function TransactionsScreen() {
     const avatarBackground = item.kind === 'credit' ? 'rgba(30, 107, 91, 0.10)' : 'rgba(215, 154, 43, 0.12)';
 
     return (
-      <View
+      <Pressable
+        onPress={() => router.push(`/transactions/${item.id}`)}
         style={[
           styles.transactionCard,
           {
@@ -140,7 +141,7 @@ export default function TransactionsScreen() {
             </ThemedText>
           </View>
         </View>
-      </View>
+      </Pressable>
     );
   };
 

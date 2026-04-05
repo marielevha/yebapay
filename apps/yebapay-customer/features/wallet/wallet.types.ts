@@ -67,3 +67,13 @@ export type TransactionSummary = {
   initiatedAt: string;
   completedAt: string | null;
 };
+
+export type TransactionDetails = TransactionSummary & {
+  totalDebit: number;
+  payerDisplayName: string | null;
+  payerPhoneNumber: string | null;
+  payeeDisplayName: string | null;
+  payeePhoneNumber: string | null;
+  failureCode: string | null;
+  failureMessage: string | null;
+};

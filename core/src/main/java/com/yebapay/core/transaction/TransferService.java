@@ -12,6 +12,7 @@ import com.yebapay.core.transaction.dto.P2pTransferQuoteRequest;
 import com.yebapay.core.transaction.dto.P2pTransferQuoteResponse;
 import com.yebapay.core.transaction.dto.P2pTransferRequest;
 import com.yebapay.core.transaction.dto.P2pTransferResponse;
+import com.yebapay.core.transaction.dto.TransactionDetailsResponse;
 import com.yebapay.core.transaction.dto.TransactionSummaryResponse;
 import com.yebapay.core.wallet.Wallet;
 import com.yebapay.core.wallet.WalletLimitService;
@@ -126,6 +127,14 @@ public class TransferService {
             .toList();
     }
 
+    @Transactional(readOnly = true)
+    public TransactionDetailsResponse getTransactionDetails(UUID userId, UUID transactionId) {
+        Transaction transaction = transactionRepository.findDetailsForUser(userId, transactionId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Transaction not found"));
+
+        return toTransactionDetails(transaction, userId);
+    }
+
     @Transactional
     public P2pTransferResponse executeP2pTransfer(UUID initiatorUserId, P2pTransferRequest request) {
         String normalizedIdempotencyKey = request.idempotencyKey().trim();
@@ -217,7 +226,7 @@ public class TransferService {
     }
 
     private TransactionSummaryResponse toTransactionSummary(Transaction transaction, UUID currentUserId) {
-        boolean outgoing = transaction.getPayerUser() != null && currentUserId.equals(transaction.getPayerUser().getId());
+        boolean outgoing = isOutgoingTransaction(transaction, currentUserId);
         User counterparty = outgoing ? transaction.getPayeeUser() : transaction.getPayerUser();
         CurrencyMetadata currency = currencyMetadataResolver.resolve(transaction.getCurrencyCode());
 
@@ -238,6 +247,42 @@ public class TransferService {
             counterparty == null ? null : counterparty.getDisplayName(),
             counterparty == null ? null : counterparty.getPhoneNumber(),
             transaction.getDescription(),
+            transaction.getInitiatedAt(),
+            transaction.getCompletedAt()
+        );
+    }
+
+    private TransactionDetailsResponse toTransactionDetails(Transaction transaction, UUID currentUserId) {
+        boolean outgoing = isOutgoingTransaction(transaction, currentUserId);
+        User payer = transaction.getPayerUser();
+        User payee = transaction.getPayeeUser();
+        User counterparty = outgoing ? payee : payer;
+        CurrencyMetadata currency = currencyMetadataResolver.resolve(transaction.getCurrencyCode());
+
+        return new TransactionDetailsResponse(
+            transaction.getId(),
+            transaction.getTransactionRef(),
+            transaction.getTransactionType(),
+            transaction.getStatus(),
+            outgoing ? "OUT" : "IN",
+            transaction.getAmount(),
+            transaction.getFeeAmount(),
+            calculateTotalDebit(transaction),
+            transaction.getNetAmount(),
+            transaction.getCurrencyCode(),
+            currency.displayCode(),
+            currency.displayName(),
+            transaction.getSourceWallet() == null ? null : transaction.getSourceWallet().getWalletNumber(),
+            transaction.getDestinationWallet() == null ? null : transaction.getDestinationWallet().getWalletNumber(),
+            counterparty == null ? null : counterparty.getDisplayName(),
+            counterparty == null ? null : counterparty.getPhoneNumber(),
+            payer == null ? null : payer.getDisplayName(),
+            payer == null ? null : payer.getPhoneNumber(),
+            payee == null ? null : payee.getDisplayName(),
+            payee == null ? null : payee.getPhoneNumber(),
+            transaction.getDescription(),
+            transaction.getFailureCode(),
+            transaction.getFailureMessage(),
             transaction.getInitiatedAt(),
             transaction.getCompletedAt()
         );
@@ -276,6 +321,18 @@ public class TransferService {
             return null;
         }
         return description.trim();
+    }
+
+    private boolean isOutgoingTransaction(Transaction transaction, UUID currentUserId) {
+        return transaction.getPayerUser() != null && currentUserId.equals(transaction.getPayerUser().getId());
+    }
+
+    private BigDecimal calculateTotalDebit(Transaction transaction) {
+        return transaction.getAmount().add(
+            transaction.getFeeBearer() == TransactionFeeBearer.PAYER
+                ? transaction.getFeeAmount()
+                : BigDecimal.ZERO
+        );
     }
 
     private BigDecimal normalizeAmount(BigDecimal amount) {

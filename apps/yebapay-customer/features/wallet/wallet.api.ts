@@ -1,6 +1,6 @@
 import { httpClient } from '@/lib/api/http-client';
 
-import type { TransactionSummary, TransactionType, WalletDetails } from '@/features/wallet/wallet.types';
+import type { TransactionDetails, TransactionSummary, TransactionType, WalletDetails } from '@/features/wallet/wallet.types';
 
 export const walletApi = {
   listCurrentUserWallets(accessToken: string) {
@@ -60,6 +60,13 @@ export const walletApi = {
     const query = searchParams.toString();
 
     return httpClient.request<TransactionSummary[]>(`/wallets/me/transactions${query ? `?${query}` : ''}`, {
+      method: 'GET',
+      accessToken,
+    });
+  },
+
+  getCurrentUserTransactionDetails(accessToken: string, transactionId: string) {
+    return httpClient.request<TransactionDetails>(`/wallets/me/transactions/${transactionId}`, {
       method: 'GET',
       accessToken,
     });

@@ -100,8 +100,7 @@ export default function TransferSuccessScreen() {
 
       <Pressable
         onPress={() => {
-          resetFlow();
-          router.replace('/(tabs)/transactions');
+          router.push(`/transactions/${result.id}`);
         }}
         hitSlop={8}>
         <ThemedText type="link" style={styles.secondaryLink} lightColor={BrandColors.palm} darkColor={BrandColors.palm}>

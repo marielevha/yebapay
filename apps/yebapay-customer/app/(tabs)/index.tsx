@@ -436,8 +436,9 @@ export default function HomeScreen() {
                 item.kind === 'credit' ? 'rgba(30, 107, 91, 0.10)' : 'rgba(215, 154, 43, 0.12)';
 
               return (
-                <View
+                <Pressable
                   key={item.id}
+                  onPress={() => router.push(`/transactions/${item.id}`)}
                   style={[
                     styles.transactionItemCard,
                     {
@@ -484,7 +485,7 @@ export default function HomeScreen() {
                       </ThemedText>
                     </View>
                   </View>
-                </View>
+                </Pressable>
               );
             })}
           </View>

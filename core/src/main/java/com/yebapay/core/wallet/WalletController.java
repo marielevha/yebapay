@@ -3,6 +3,7 @@ package com.yebapay.core.wallet;
 import com.yebapay.core.identity.auth.AuthenticatedUser;
 import com.yebapay.core.transaction.TransactionType;
 import com.yebapay.core.transaction.TransferService;
+import com.yebapay.core.transaction.dto.TransactionDetailsResponse;
 import com.yebapay.core.transaction.dto.TransactionSummaryResponse;
 import com.yebapay.core.wallet.dto.WalletDetailsResponse;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,5 +47,13 @@ public class WalletController {
         @RequestParam(defaultValue = "10") int size
     ) {
         return transferService.getHomeTransactions(principal.getUserId(), walletId, size);
+    }
+
+    @GetMapping("/me/transactions/{transactionId}")
+    public TransactionDetailsResponse currentUserTransactionDetails(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @PathVariable UUID transactionId
+    ) {
+        return transferService.getTransactionDetails(principal.getUserId(), transactionId);
     }
 }

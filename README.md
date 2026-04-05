@@ -164,6 +164,12 @@ Depuis `core`:
 ./mvnw spring-boot:run
 ```
 
+Pour un redemarrage automatique du backend quand un fichier dans `core/src/main` ou `core/pom.xml` change:
+
+```bash
+./scripts/dev-watch.sh
+```
+
 ### Mobile customer
 
 Depuis `apps/yebapay-customer`:
