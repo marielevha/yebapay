@@ -463,6 +463,14 @@ export const translations = {
         typeTitle: 'Choisir un type',
         allTypes: 'Tous les types',
       },
+      list: {
+        today: "Aujourd'hui",
+        yesterday: 'Hier',
+        received: 'Recu',
+        sent: 'Envoye',
+        paid: 'Paye',
+        allWalletsMeta: '{{count}} wallet(s)',
+      },
       messages: {
         loading: 'Chargement des transactions...',
         loadingMore: 'Chargement de la suite...',
@@ -1013,6 +1021,14 @@ export const translations = {
         typeLabel: 'Type',
         typeTitle: 'Choose a type',
         allTypes: 'All types',
+      },
+      list: {
+        today: 'Today',
+        yesterday: 'Yesterday',
+        received: 'Received',
+        sent: 'Sent',
+        paid: 'Paid',
+        allWalletsMeta: '{{count}} wallet(s)',
       },
       messages: {
         loading: 'Loading transactions...',
