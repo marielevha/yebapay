@@ -63,6 +63,8 @@ export default function TransferConfirmScreen() {
   return (
     <TransferScreenShell
       stepLabel={t('transfer.steps.confirm')}
+      title={t('transfer.confirm.title')}
+      subtitle={t('transfer.confirm.subtitle')}
       onBack={() => router.back()}
       contentSurface="plain"
       footer={

@@ -77,6 +77,25 @@ public class WalletService {
     }
 
     @Transactional(readOnly = true)
+    public Wallet getActiveOwnedWalletForUser(UUID userId, UUID walletId) {
+        User user = userRepository.findByIdAndDeletedAtIsNull(userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "User account is not active");
+        }
+
+        Wallet wallet = walletRepository.findByIdAndOwnerUser_IdAndDeletedAtIsNull(walletId, userId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Wallet not found"));
+
+        if (wallet.getStatus() != WalletStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Wallet is not active");
+        }
+
+        return wallet;
+    }
+
+    @Transactional(readOnly = true)
     public Wallet getActivePersonalWalletByWalletNumber(String walletNumber) {
         String normalizedWalletNumber = normalizeWalletNumber(walletNumber);
         Wallet wallet = walletRepository.findByWalletNumberAndDeletedAtIsNull(normalizedWalletNumber)

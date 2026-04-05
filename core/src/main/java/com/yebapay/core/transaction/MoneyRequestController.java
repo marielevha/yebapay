@@ -3,7 +3,10 @@ package com.yebapay.core.transaction;
 import com.yebapay.core.identity.auth.AuthenticatedUser;
 import com.yebapay.core.transaction.dto.AcceptMoneyRequestRequest;
 import com.yebapay.core.transaction.dto.CreateMoneyRequestRequest;
+import com.yebapay.core.transaction.dto.MoneyRequestDetailsResponse;
 import com.yebapay.core.transaction.dto.MoneyRequestPaymentResponse;
+import com.yebapay.core.transaction.dto.MoneyRequestQuoteRequest;
+import com.yebapay.core.transaction.dto.MoneyRequestQuoteResponse;
 import com.yebapay.core.transaction.dto.MoneyRequestResponse;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -34,6 +37,23 @@ public class MoneyRequestController {
     @GetMapping("/me")
     public List<MoneyRequestResponse> mine(@AuthenticationPrincipal AuthenticatedUser principal) {
         return moneyRequestService.listForUser(principal.getUserId());
+    }
+
+    @GetMapping("/{requestRef}")
+    public MoneyRequestDetailsResponse details(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @PathVariable String requestRef
+    ) {
+        return moneyRequestService.getDetails(principal.getUserId(), requestRef);
+    }
+
+    @PostMapping("/{requestRef}/quote")
+    public MoneyRequestQuoteResponse quote(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @PathVariable String requestRef,
+        @Valid @RequestBody(required = false) MoneyRequestQuoteRequest request
+    ) {
+        return moneyRequestService.quote(principal.getUserId(), requestRef, request);
     }
 
     @PostMapping("/{requestRef}/accept")

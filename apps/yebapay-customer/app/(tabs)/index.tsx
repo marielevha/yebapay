@@ -1,6 +1,6 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { type Href, router } from 'expo-router';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -31,7 +31,7 @@ import { useSession } from '@/providers/session-provider';
 type ActionItem = {
   icon: ComponentProps<typeof MaterialIcons>['name'];
   labelKey: string;
-  route?: string;
+  route?: Href;
 };
 
 const ACTIONS: ActionItem[] = [
@@ -47,7 +47,7 @@ const ACTIONS: ActionItem[] = [
   {
     icon: 'request-page',
     labelKey: 'home.actions.request',
-    route: '/(tabs)/transactions',
+    route: '/request',
   },
   {
     icon: 'swap-horiz',

@@ -13,6 +13,8 @@ public interface WalletRepository extends JpaRepository<Wallet, UUID> {
 
     List<Wallet> findByOwnerUser_IdAndDeletedAtIsNull(UUID ownerUserId);
 
+    Optional<Wallet> findByIdAndOwnerUser_IdAndDeletedAtIsNull(UUID walletId, UUID ownerUserId);
+
     Optional<Wallet> findByWalletNumberAndDeletedAtIsNull(String walletNumber);
 
     Optional<Wallet> findByOwnerUser_IdAndWalletTypeAndDeletedAtIsNull(UUID ownerUserId, WalletType walletType);

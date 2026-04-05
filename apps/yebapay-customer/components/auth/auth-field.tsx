@@ -12,7 +12,7 @@ import { ThemedText } from '@/components/themed-text';
 import { BrandColors } from '@/constants/brand';
 
 type AuthFieldProps = TextInputProps & {
-  label: string;
+  label?: string;
   icon: ComponentProps<typeof MaterialIcons>['name'];
   actionIcon?: ComponentProps<typeof MaterialIcons>['name'];
   onActionPress?: () => void;
@@ -44,9 +44,11 @@ export function AuthField({
 
   return (
     <View style={styles.wrapper}>
-      <ThemedText type="bodySmall" style={styles.label} lightColor={BrandColors.slate}>
-        {label}
-      </ThemedText>
+      {label ? (
+        <ThemedText type="bodySmall" style={styles.label} lightColor={BrandColors.slate}>
+          {label}
+        </ThemedText>
+      ) : null}
 
       <View
         style={[

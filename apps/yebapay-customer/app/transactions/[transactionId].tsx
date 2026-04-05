@@ -80,7 +80,7 @@ function getStatusLabel(status: TransactionStatus, t: (key: string) => string) {
   }
 }
 
-function getStatusTone(status: TransactionStatus, palette: (typeof Colors)['light']) {
+function getStatusTone(status: TransactionStatus, palette: typeof Colors.light | typeof Colors.dark) {
   switch (status) {
     case 'COMPLETED':
       return palette.success;

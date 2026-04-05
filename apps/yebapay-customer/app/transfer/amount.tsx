@@ -3,13 +3,11 @@ import { Redirect, router } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
-  NativeSyntheticEvent,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   TextInput,
-  TextInputFocusEventData,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -108,9 +106,8 @@ export default function TransferAmountScreen() {
     return <Redirect href="/transfer/recipient" />;
   }
 
-  const handleNoteBlur = (event: NativeSyntheticEvent<TextInputFocusEventData>) => {
-    const nextValue = sanitizeTransferDescription(event.nativeEvent.text ?? '');
-    if (!nextValue) {
+  const handleNoteBlur = () => {
+    if (!sanitizeTransferDescription(description)) {
       setIsNoteExpanded(false);
     }
   };

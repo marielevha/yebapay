@@ -13,7 +13,10 @@ import com.yebapay.core.qr.QrTokenRepository;
 import com.yebapay.core.qr.dto.QrTokenResponse;
 import com.yebapay.core.transaction.dto.AcceptMoneyRequestRequest;
 import com.yebapay.core.transaction.dto.CreateMoneyRequestRequest;
+import com.yebapay.core.transaction.dto.MoneyRequestDetailsResponse;
 import com.yebapay.core.transaction.dto.MoneyRequestPaymentResponse;
+import com.yebapay.core.transaction.dto.MoneyRequestQuoteRequest;
+import com.yebapay.core.transaction.dto.MoneyRequestQuoteResponse;
 import com.yebapay.core.transaction.dto.MoneyRequestResponse;
 import com.yebapay.core.wallet.Wallet;
 import com.yebapay.core.wallet.WalletLimitService;
@@ -53,7 +56,9 @@ public class MoneyRequestService {
     @Transactional
     public MoneyRequestResponse create(UUID requesterUserId, CreateMoneyRequestRequest request) {
         User requester = requireActiveUser(requesterUserId, "Requester not found");
-        Wallet targetWallet = walletService.getActivePersonalWalletForUser(requesterUserId);
+        Wallet targetWallet = request.targetWalletId() == null
+            ? walletService.getActivePersonalWalletForUser(requesterUserId)
+            : walletService.getActiveOwnedWalletForUser(requesterUserId, request.targetWalletId());
         User payer = resolveOptionalPayer(request.payerPhoneNumber(), requester.getId());
         BigDecimal amount = normalizeOptionalAmount(request.amount());
         Instant expiresAt = Instant.now().plus(resolveExpiry(request.expiresInMinutes()));
@@ -75,11 +80,77 @@ public class MoneyRequestService {
         return toResponse(moneyRequest, qr);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<MoneyRequestResponse> listForUser(UUID userId) {
         return moneyRequestRepository.findRecentForUser(userId).stream()
+            .map(this::refreshExpiredStatus)
             .map(request -> toResponse(request, null))
             .toList();
+    }
+
+    @Transactional
+    public MoneyRequestDetailsResponse getDetails(UUID currentUserId, String requestRef) {
+        MoneyRequest moneyRequest = refreshExpiredStatus(findByRequestRefOrThrow(requestRef));
+        User viewer = requireActiveUser(currentUserId, "User not found");
+        ensureViewerAccess(moneyRequest, viewer.getId());
+
+        boolean viewerIsRequester = viewer.getId().equals(moneyRequest.getRequesterUser().getId());
+        boolean payableByViewer = !viewerIsRequester
+            && moneyRequest.getStatus() == MoneyRequestStatus.PENDING
+            && (moneyRequest.getPayerUser() == null || viewer.getId().equals(moneyRequest.getPayerUser().getId()));
+        boolean cancelableByViewer = viewerIsRequester && moneyRequest.getStatus() == MoneyRequestStatus.PENDING;
+        boolean declinableByViewer = payableByViewer;
+        QrTokenResponse qr = viewerIsRequester
+            ? qrTokenRepository.findTopByMoneyRequest_IdOrderByCreatedAtDesc(moneyRequest.getId())
+                .map(qrService::toResponse)
+                .orElse(null)
+            : null;
+
+        return toDetailsResponse(
+            moneyRequest,
+            viewerIsRequester,
+            payableByViewer,
+            cancelableByViewer,
+            declinableByViewer,
+            qr
+        );
+    }
+
+    @Transactional
+    public MoneyRequestQuoteResponse quote(UUID payerUserId, String requestRef, MoneyRequestQuoteRequest request) {
+        MoneyRequest moneyRequest = findByRequestRefOrThrow(requestRef);
+        ensurePayable(moneyRequest, payerUserId);
+
+        User payer = requireActiveUser(payerUserId, "Payer not found");
+        Wallet sourceWallet = walletService.getActivePersonalWalletForUser(payerUserId);
+        Wallet destinationWallet = moneyRequest.getTargetWallet();
+        BigDecimal amount = resolveSettlementAmount(moneyRequest, request == null ? null : request.amount());
+        FeeQuote feeQuote = feeEngineService.quote(
+            TransactionType.MONEY_REQUEST.name(),
+            sourceWallet.getCurrencyCode(),
+            "CUSTOMER",
+            "CUSTOMER",
+            null,
+            amount
+        );
+        walletLimitService.assertCanDebit(sourceWallet, feeQuote.totalDebit());
+        CurrencyMetadata currency = currencyMetadataResolver.resolve(sourceWallet.getCurrencyCode());
+
+        return new MoneyRequestQuoteResponse(
+            moneyRequest.getRequestRef(),
+            moneyRequest.getRequesterUser().getDisplayName(),
+            sourceWallet.getWalletNumber(),
+            destinationWallet == null ? null : destinationWallet.getWalletNumber(),
+            amount,
+            feeQuote.feeAmount(),
+            feeQuote.totalDebit(),
+            feeQuote.netAmount(),
+            sourceWallet.getCurrencyCode(),
+            currency.displayCode(),
+            currency.displayName(),
+            moneyRequest.getReason(),
+            moneyRequest.getExpiresAt()
+        );
     }
 
     @Transactional
@@ -94,8 +165,7 @@ public class MoneyRequestService {
             return toPaymentResponse(existingTransaction);
         }
 
-        MoneyRequest moneyRequest = moneyRequestRepository.findByRequestRef(requestRef)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Money request not found"));
+        MoneyRequest moneyRequest = findByRequestRefOrThrow(requestRef);
         ensurePayable(moneyRequest, payerUserId);
 
         User payer = requireActiveUser(payerUserId, "Payer not found");
@@ -150,8 +220,7 @@ public class MoneyRequestService {
 
     @Transactional
     public MoneyRequestResponse decline(UUID payerUserId, String requestRef) {
-        MoneyRequest moneyRequest = moneyRequestRepository.findByRequestRef(requestRef)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Money request not found"));
+        MoneyRequest moneyRequest = findByRequestRefOrThrow(requestRef);
         ensurePending(moneyRequest);
         ensurePayerAccess(moneyRequest, payerUserId);
 
@@ -166,8 +235,7 @@ public class MoneyRequestService {
 
     @Transactional
     public MoneyRequestResponse cancel(UUID requesterUserId, String requestRef) {
-        MoneyRequest moneyRequest = moneyRequestRepository.findByRequestRef(requestRef)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Money request not found"));
+        MoneyRequest moneyRequest = findByRequestRefOrThrow(requestRef);
 
         if (!requesterUserId.equals(moneyRequest.getRequesterUser().getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the requester can cancel this money request");
@@ -183,14 +251,8 @@ public class MoneyRequestService {
     }
 
     private void ensurePayable(MoneyRequest moneyRequest, UUID payerUserId) {
-        ensurePending(moneyRequest);
+        ensurePending(refreshExpiredStatus(moneyRequest));
         ensurePayerAccess(moneyRequest, payerUserId);
-
-        if (moneyRequest.getExpiresAt() != null && moneyRequest.getExpiresAt().isBefore(Instant.now())) {
-            moneyRequest.setStatus(MoneyRequestStatus.EXPIRED);
-            moneyRequestRepository.save(moneyRequest);
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Money request has expired");
-        }
     }
 
     private void ensurePending(MoneyRequest moneyRequest) {
@@ -206,6 +268,19 @@ public class MoneyRequestService {
         if (moneyRequest.getPayerUser() != null && !payerUserId.equals(moneyRequest.getPayerUser().getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This money request is assigned to another user");
         }
+    }
+
+    private void ensureViewerAccess(MoneyRequest moneyRequest, UUID viewerUserId) {
+        if (moneyRequest.getRequesterUser().getId().equals(viewerUserId)) {
+            return;
+        }
+        if (moneyRequest.getPayerUser() == null) {
+            return;
+        }
+        if (viewerUserId.equals(moneyRequest.getPayerUser().getId())) {
+            return;
+        }
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "This money request is assigned to another user");
     }
 
     private User requireActiveUser(UUID userId, String notFoundMessage) {
@@ -285,6 +360,43 @@ public class MoneyRequestService {
         );
     }
 
+    private MoneyRequestDetailsResponse toDetailsResponse(
+        MoneyRequest moneyRequest,
+        boolean viewerIsRequester,
+        boolean payableByViewer,
+        boolean cancelableByViewer,
+        boolean declinableByViewer,
+        QrTokenResponse qr
+    ) {
+        CurrencyMetadata currency = currencyMetadataResolver.resolve(moneyRequest.getCurrencyCode());
+        Wallet targetWallet = moneyRequest.getTargetWallet();
+        User payer = moneyRequest.getPayerUser();
+
+        return new MoneyRequestDetailsResponse(
+            moneyRequest.getId(),
+            moneyRequest.getRequestRef(),
+            moneyRequest.getStatus().name(),
+            moneyRequest.getRequesterUser().getDisplayName(),
+            moneyRequest.getRequesterUser().getPhoneNumber(),
+            payer == null ? null : payer.getDisplayName(),
+            payer == null ? null : payer.getPhoneNumber(),
+            targetWallet == null ? null : targetWallet.getWalletNumber(),
+            moneyRequest.getAmount(),
+            moneyRequest.getCurrencyCode(),
+            currency.displayCode(),
+            currency.displayName(),
+            moneyRequest.getReason(),
+            moneyRequest.getCreatedAt(),
+            moneyRequest.getExpiresAt(),
+            moneyRequest.getPaidAt(),
+            viewerIsRequester,
+            payableByViewer,
+            cancelableByViewer,
+            declinableByViewer,
+            qr
+        );
+    }
+
     private MoneyRequestPaymentResponse toPaymentResponse(Transaction transaction) {
         CurrencyMetadata currency = currencyMetadataResolver.resolve(transaction.getCurrencyCode());
         BigDecimal totalDebit = transaction.getAmount().add(
@@ -313,6 +425,22 @@ public class MoneyRequestService {
             return null;
         }
         return value.trim();
+    }
+
+    private MoneyRequest findByRequestRefOrThrow(String requestRef) {
+        return moneyRequestRepository.findByRequestRef(requestRef)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Money request not found"));
+    }
+
+    private MoneyRequest refreshExpiredStatus(MoneyRequest moneyRequest) {
+        if (moneyRequest.getStatus() == MoneyRequestStatus.PENDING
+            && moneyRequest.getExpiresAt() != null
+            && moneyRequest.getExpiresAt().isBefore(Instant.now())) {
+            moneyRequest.setStatus(MoneyRequestStatus.EXPIRED);
+            return moneyRequestRepository.save(moneyRequest);
+        }
+
+        return moneyRequest;
     }
 
     private String generateRequestRef() {

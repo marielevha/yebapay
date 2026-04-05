@@ -31,11 +31,15 @@ export function getQrDecodeErrorMessage(error: unknown, t: Translate) {
       || message.includes('unknown qr reference')
       || message.includes('qr data is required')
       || message.includes('invalid qr signature')
+      || message.includes('qr signature is invalid')
+      || message.includes('qr payload is malformed')
+      || message.includes('qr reference is missing')
+      || message.includes('qr not found')
     ) {
       return t('transfer.qr.errors.invalid');
     }
 
-    if (message.includes('qr token has expired')) {
+    if (message.includes('qr token has expired') || message.includes('qr has expired')) {
       return t('transfer.qr.errors.expired');
     }
 

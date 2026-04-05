@@ -29,12 +29,10 @@ function getInitials(displayName: string) {
   return initials || 'Y';
 }
 
-function rankBeneficiaries(
-  beneficiaries: {
+function rankBeneficiaries<T extends {
     id: string;
     lastUsedAt: string | null;
-  }[]
-) {
+  }>(beneficiaries: T[]) {
   return [...beneficiaries].sort((left, right) => {
     const leftTime = left.lastUsedAt ? new Date(left.lastUsedAt).getTime() : 0;
     const rightTime = right.lastUsedAt ? new Date(right.lastUsedAt).getTime() : 0;

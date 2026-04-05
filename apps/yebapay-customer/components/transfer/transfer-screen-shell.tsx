@@ -22,6 +22,8 @@ type TransferScreenShellProps = {
   children: ReactNode;
   footer?: ReactNode;
   contentSurface?: 'card' | 'plain';
+  topBarVariant?: 'brand' | 'title';
+  copyTitleHidden?: boolean;
 };
 
 export function TransferScreenShell({
@@ -32,6 +34,8 @@ export function TransferScreenShell({
   children,
   footer,
   contentSurface = 'card',
+  topBarVariant = 'brand',
+  copyTitleHidden = false,
 }: TransferScreenShellProps) {
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -42,33 +46,53 @@ export function TransferScreenShell({
         <View style={styles.glowBottom} />
 
         <View style={styles.headerBar}>
-          <Pressable onPress={onBack} hitSlop={8} style={[styles.headerAction, BrandShadow.card]}>
-            <MaterialIcons name="arrow-back-ios-new" size={20} color={BrandColors.ink} />
-          </Pressable>
+          {topBarVariant === 'title' ? (
+            <>
+              {onBack ? (
+                <Pressable onPress={onBack} hitSlop={8} style={[styles.headerActionCompact, BrandShadow.card]}>
+                  <MaterialIcons name="arrow-back-ios-new" size={18} color={BrandColors.ink} />
+                </Pressable>
+              ) : (
+                <View style={styles.headerGhostCompact} />
+              )}
 
-          <View style={styles.headerBrand}>
-            <View style={styles.brandBadge}>
-              <BrandMark size={28} />
-            </View>
-            <ThemedText type="defaultSemiBold">YebaPay</ThemedText>
-          </View>
+              <ThemedText type="defaultSemiBold">{title}</ThemedText>
 
-          <View style={styles.headerGhost} />
+              <View style={styles.headerGhostCompact} />
+            </>
+          ) : (
+            <>
+              <Pressable onPress={onBack} hitSlop={8} style={[styles.headerAction, BrandShadow.card]}>
+                <MaterialIcons name="arrow-back-ios-new" size={20} color={BrandColors.ink} />
+              </Pressable>
+
+              <View style={styles.headerBrand}>
+                <View style={styles.brandBadge}>
+                  <BrandMark size={28} />
+                </View>
+                <ThemedText type="defaultSemiBold">YebaPay</ThemedText>
+              </View>
+
+              <View style={styles.headerGhost} />
+            </>
+          )}
         </View>
 
         <ScrollView
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}>
-          <View style={styles.copy}>
+          <View style={[styles.copy, copyTitleHidden ? styles.copyCompact : null]}>
             {stepLabel ? (
               <ThemedText type="eyebrow" lightColor={BrandColors.palm} darkColor={BrandColors.palm}>
                 {stepLabel}
               </ThemedText>
             ) : null}
-            <ThemedText type="title" style={styles.title}>
-              {title}
-            </ThemedText>
+            {!copyTitleHidden ? (
+              <ThemedText type="title" style={styles.title}>
+                {title}
+              </ThemedText>
+            ) : null}
             {subtitle ? (
               <ThemedText type="default" style={styles.subtitle} lightColor={BrandColors.slate} darkColor={BrandColors.slate}>
                 {subtitle}
@@ -129,6 +153,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DFE9E2',
   },
+  headerActionCompact: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: BrandColors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#DFE9E2',
+  },
   headerBrand: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -147,6 +181,10 @@ const styles = StyleSheet.create({
   headerGhost: {
     width: 44,
   },
+  headerGhostCompact: {
+    width: 40,
+    height: 40,
+  },
   content: {
     flexGrow: 1,
     paddingHorizontal: 20,
@@ -156,6 +194,9 @@ const styles = StyleSheet.create({
   },
   copy: {
     gap: 8,
+  },
+  copyCompact: {
+    gap: 4,
   },
   title: {
     maxWidth: 320,
