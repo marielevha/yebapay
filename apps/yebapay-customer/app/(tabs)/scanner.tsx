@@ -277,24 +277,13 @@ export default function ScannerScreen() {
 
         <View style={styles.overlay}>
           <View style={styles.topBar}>
-            <Pressable
-              onPress={() => router.replace('/(tabs)')}
-              hitSlop={8}
-              style={[styles.topButton, BrandShadow.card]}>
-              <MaterialIcons name="arrow-back-ios-new" size={18} color={BrandColors.white} />
-            </Pressable>
-
-            <View style={styles.topTitleWrap}>
-              <ThemedText
-                type="defaultSemiBold"
-                style={styles.topTitle}
-                lightColor={BrandColors.white}
-                darkColor={BrandColors.white}>
-                {t('scanner.live.title')}
-              </ThemedText>
-            </View>
-
-            <View style={styles.topButtonSpacer} />
+            <ThemedText
+              type="defaultSemiBold"
+              style={styles.topTitle}
+              lightColor={BrandColors.white}
+              darkColor={BrandColors.white}>
+              {t('scanner.live.title')}
+            </ThemedText>
           </View>
 
           <View style={styles.scanStage}>
@@ -411,32 +400,12 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   topBar: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
     paddingTop: 10,
+    minHeight: 52,
     zIndex: 2,
-  },
-  topButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(18, 49, 46, 0.24)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.22)',
-  },
-  topTitleWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 12,
-  },
-  topButtonSpacer: {
-    width: 42,
-    height: 42,
   },
   topTitle: {
     textAlign: 'center',

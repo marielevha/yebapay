@@ -81,6 +81,10 @@ La partie mobile a deja quitte le simple scaffold Expo :
   - timeline infinie par lots de 10
   - pull-to-refresh
   - affichage date + heure sur les cartes
+- page detail transaction ajoutee avec :
+  - endpoint backend dedie
+  - recu detaille
+  - partage d'un recu image brandee
 - parcours `Transfert` branche de bout en bout :
   - choix du beneficiaire depuis les recents ou la liste complete
   - ajout manuel d'un beneficiaire
@@ -95,6 +99,19 @@ La partie mobile a deja quitte le simple scaffold Expo :
   - pull-to-refresh sur la home
   - hooks de chargement stabilises pour eviter les boucles de refetch
   - refresh de session mobile serialize pour eviter les conflits de tokens
+  - QR personnel du wallet principal affichable depuis la home pour etre scanne comme beneficiaire
+- parcours `Demande d'argent` branche :
+  - choix du wallet de reception
+  - creation de demande avec montant et note
+  - ecran de partage QR simplifie
+  - paiement d'une demande apres scan QR
+  - review, choix du wallet source, saisie PIN et succes
+- experience `Scanner` reprise avec :
+  - camera QR reelle
+  - cadre de scan anime
+  - import d'un QR depuis la galerie
+  - permission camera simplifiee
+  - detection explicite des QR non YebaPay
 - support backend ajoute pour la pagination et le filtrage des transactions :
   - `page`
   - `size`
@@ -119,6 +136,23 @@ Cette branche a fait passer le projet d'un socle wallet/auth a un premier parcou
   - revue des ecrans `recipient`, `amount`, `confirm`, `pin` et `success` avec une structure plus simple
   - verification visuelle du solde insuffisant pendant la saisie du montant a partir du `quote`
   - i18n et messages utilisateur etendus pour tout le parcours
+
+### Travaux de la branche `feat/customer-scan-pay`
+
+Cette branche a transforme le scanner en point d'entree reel du paiement QR et a boucle le reglement des demandes d'argent :
+
+- backend :
+  - support du `sourceWalletId` sur le quote et le paiement final d'une demande d'argent
+  - ajout d'un marqueur d'emission sur les QR YebaPay pour distinguer les QR externes
+  - validation plus explicite des QR non emis par YebaPay
+- mobile :
+  - refonte complete de l'ecran `Scanner` avec camera, animation, galerie et top bar adaptee a un onglet
+  - redirection d'un QR `request` vers un ecran de validation inspire du detail transaction
+  - choix du wallet source si le payeur en possede plusieurs
+  - ecran PIN simplifie en 4 chiffres type OTP
+  - ecran succes de reglement refait sans logique de card
+  - navigation vers le detail transaction apres paiement avec retour propre vers l'onglet `Transactions`
+  - modal QR du wallet perso accessible depuis la home pour faciliter l'ajout de beneficiaire
 
 ## Fonctionnalites deja couvertes cote backend
 
@@ -145,12 +179,10 @@ Cette branche a fait passer le projet d'un socle wallet/auth a un premier parcou
 
 ### Mobile
 
-- poursuivre le branchement backend reel sur `Scanner` et `Profil`
-- integrer la camera pour le scan QR
+- poursuivre le branchement backend reel sur `Profil`
 - construire les parcours metier complets autour du wallet :
-  - demande d'argent
-  - paiement marchand
-  - historique detaille
+  - paiement marchand via QR statique / dynamique
+  - historique des demandes d'argent
   - profil / settings / langue
 - ajouter la gestion complete du PIN cote mobile hors onboarding initial
 
