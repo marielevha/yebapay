@@ -357,7 +357,7 @@ export default function MoneyRequestDetailsScreen() {
           <View style={styles.footerActions}>
             <AuthPrimaryButton
               label={t('requestMoney.detail.continueToPay')}
-              onPress={() => router.push({ pathname: '/request/pay', params: { requestRef: moneyRequest.requestRef } })}
+              onPress={() => router.push({ pathname: '/request/review', params: { requestRef: moneyRequest.requestRef } })}
             />
             {moneyRequest.declinableByViewer ? (
               <Pressable onPress={() => void handleDecline()} disabled={isSubmitting} hitSlop={8}>

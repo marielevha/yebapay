@@ -227,14 +227,24 @@ function ShareReceiptLine({
 }
 
 export default function TransactionDetailsScreen() {
-  const { transactionId } = useLocalSearchParams<{ transactionId?: string }>();
+  const { transactionId, backTo } = useLocalSearchParams<{ transactionId?: string; backTo?: string }>();
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
   const { t, language } = useI18n();
   const shareCaptureRef = useRef<View>(null);
   const [isSharingImage, setIsSharingImage] = useState(false);
   const normalizedTransactionId = typeof transactionId === 'string' ? transactionId : undefined;
+  const normalizedBackTo = typeof backTo === 'string' ? backTo : undefined;
   const { transaction, isLoading, errorMessage, reload } = useTransactionDetails(normalizedTransactionId);
+
+  const handleBack = () => {
+    if (normalizedBackTo === 'transactions') {
+      router.replace('/(tabs)/transactions');
+      return;
+    }
+
+    router.back();
+  };
 
   if (!normalizedTransactionId) {
     return <Redirect href="/(tabs)/transactions" />;
@@ -251,7 +261,7 @@ export default function TransactionDetailsScreen() {
       <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]}>
         <View style={styles.headerBar}>
           <Pressable
-            onPress={() => router.back()}
+            onPress={handleBack}
             hitSlop={8}
             style={[styles.headerAction, styles.headerActionFilled, BrandShadow.card]}
           >
@@ -366,7 +376,7 @@ export default function TransactionDetailsScreen() {
     <SafeAreaView style={[styles.safeArea, { backgroundColor: palette.background }]}>
       <View style={styles.headerBar}>
         <Pressable
-          onPress={() => router.back()}
+          onPress={handleBack}
           hitSlop={8}
           style={[styles.headerAction, styles.headerActionFilled, BrandShadow.card]}
         >

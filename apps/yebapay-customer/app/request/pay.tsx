@@ -2,11 +2,10 @@ import { Redirect, router, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import { AuthField } from '@/components/auth/auth-field';
+import { AuthCodeInput } from '@/components/auth/auth-code-input';
 import { AuthFormAlert } from '@/components/auth/auth-form-alert';
 import { AuthPrimaryButton } from '@/components/auth/auth-primary-button';
 import { TransferScreenShell } from '@/components/transfer/transfer-screen-shell';
-import { TransferSummaryCard } from '@/components/transfer/transfer-summary-card';
 import { ThemedText } from '@/components/themed-text';
 import { BrandColors } from '@/constants/brand';
 import { moneyRequestApi } from '@/features/money-request/money-request.api';
@@ -17,20 +16,13 @@ import { useI18n } from '@/i18n/provider';
 import { isApiError } from '@/lib/api/api-error';
 import { useSession } from '@/providers/session-provider';
 
-function formatMoney(value: number, currencyDisplayCode: string, language: string) {
-  return `${new Intl.NumberFormat(language === 'en' ? 'en-US' : 'fr-FR', {
-    minimumFractionDigits: Number.isInteger(value) ? 0 : 2,
-    maximumFractionDigits: Number.isInteger(value) ? 0 : 2,
-  }).format(value)} ${currencyDisplayCode}`;
-}
-
 function createMoneyRequestIdempotencyKey() {
   return `money-request-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export default function MoneyRequestPayScreen() {
-  const { requestRef } = useLocalSearchParams<{ requestRef?: string }>();
-  const { t, language } = useI18n();
+  const { requestRef, sourceWalletId } = useLocalSearchParams<{ requestRef?: string; sourceWalletId?: string }>();
+  const { t } = useI18n();
   const { accessToken, refreshSession, isAuthenticated } = useSession();
   const [quote, setQuote] = useState<MoneyRequestQuoteResponse | null>(null);
   const [isLoadingQuote, setIsLoadingQuote] = useState(true);
@@ -76,7 +68,11 @@ export default function MoneyRequestPayScreen() {
     setIsLoadingQuote(true);
     setErrorMessage(null);
 
-    void requestWithSessionRetry((token) => moneyRequestApi.quoteMoneyRequest(token, requestRef))
+    void requestWithSessionRetry((token) =>
+      moneyRequestApi.quoteMoneyRequest(token, requestRef, {
+        sourceWalletId: sourceWalletId || undefined,
+      })
+    )
       .then((response) => {
         if (active) {
           setQuote(response);
@@ -97,7 +93,7 @@ export default function MoneyRequestPayScreen() {
     return () => {
       active = false;
     };
-  }, [accessToken, isAuthenticated, requestRef, requestWithSessionRetry, t]);
+  }, [accessToken, isAuthenticated, requestRef, requestWithSessionRetry, sourceWalletId, t]);
 
   const canSubmit = useMemo(() => Boolean(quote && pin.length >= 4 && !submitting), [pin.length, quote, submitting]);
 
@@ -120,6 +116,7 @@ export default function MoneyRequestPayScreen() {
     try {
       const response = await requestWithSessionRetry((token) =>
         moneyRequestApi.acceptMoneyRequest(token, requestRef, {
+          sourceWalletId: sourceWalletId || undefined,
           idempotencyKey: createMoneyRequestIdempotencyKey(),
           pin,
           description: quote.reason ?? undefined,
@@ -142,8 +139,10 @@ export default function MoneyRequestPayScreen() {
   return (
     <TransferScreenShell
       title={t('requestMoney.pay.title')}
-      subtitle={t('requestMoney.pay.subtitle')}
       onBack={() => router.back()}
+      contentSurface="plain"
+      topBarVariant="title"
+      copyTitleHidden
       footer={
         <AuthPrimaryButton
           label={t('requestMoney.pay.submit')}
@@ -158,51 +157,17 @@ export default function MoneyRequestPayScreen() {
           <ActivityIndicator color={BrandColors.palm} />
         </View>
       ) : quote ? (
-        <>
-          <TransferSummaryCard
-            title={t('requestMoney.pay.summaryTitle')}
-            rows={[
-              {
-                label: t('requestMoney.detail.requester'),
-                value: quote.requesterDisplayName,
-              },
-              {
-                label: t('transfer.summary.fromWallet'),
-                value: quote.sourceWalletNumber,
-              },
-              {
-                label: t('transfer.summary.amount'),
-                value: formatMoney(quote.amount, quote.currencyDisplayCode, language),
-              },
-              {
-                label: t('transfer.summary.fees'),
-                value: formatMoney(quote.feeAmount, quote.currencyDisplayCode, language),
-              },
-              {
-                label: t('transfer.summary.totalDebit'),
-                value: formatMoney(quote.totalDebit, quote.currencyDisplayCode, language),
-                strong: true,
-              },
-            ]}
-          />
-
-          {quote.reason ? (
-            <View style={styles.noteBlock}>
-              <ThemedText type="bodySmall" lightColor={BrandColors.slate} darkColor={BrandColors.slate}>
-                {t('requestMoney.detail.note')}
+        <View style={styles.content}>
+          <View style={styles.pinIntro}>
+            <View style={styles.pinBadge}>
+              <ThemedText type="defaultSemiBold" style={styles.pinBadgeText}>
+                PIN
               </ThemedText>
-              <ThemedText type="default">{quote.reason}</ThemedText>
             </View>
-          ) : null}
+          </View>
 
-          <AuthField
-            label={t('requestMoney.pay.pinLabel')}
-            icon="pin"
-            placeholder={t('requestMoney.pay.pinPlaceholder')}
-            keyboardType="number-pad"
-            textContentType="oneTimeCode"
-            secureTextEntry
-            maxLength={6}
+          <AuthCodeInput
+            length={4}
             value={pin}
             onChangeText={(value) => {
               setPin(sanitizeTransferPin(value));
@@ -212,7 +177,7 @@ export default function MoneyRequestPayScreen() {
               }
             }}
           />
-        </>
+        </View>
       ) : null}
 
       {errorMessage ? <AuthFormAlert message={errorMessage} /> : null}
@@ -226,7 +191,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  noteBlock: {
-    gap: 10,
+  content: {
+    paddingTop: 16,
+    gap: 24,
+  },
+  pinIntro: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  pinBadge: {
+    minWidth: 64,
+    height: 64,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: BrandColors.cloud,
+    borderWidth: 1,
+    borderColor: '#DDE8E1',
+  },
+  pinBadgeText: {
+    letterSpacing: 1.2,
   },
 });

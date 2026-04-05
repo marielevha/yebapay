@@ -66,6 +66,7 @@ export type CreateMoneyRequestRequest = {
 
 export type MoneyRequestQuoteRequest = {
   amount?: number;
+  sourceWalletId?: string;
 };
 
 export type MoneyRequestQuoteResponse = {
@@ -86,6 +87,7 @@ export type MoneyRequestQuoteResponse = {
 
 export type AcceptMoneyRequestRequest = {
   amount?: number;
+  sourceWalletId?: string;
   idempotencyKey: string;
   pin: string;
   description?: string;

@@ -290,6 +290,7 @@ export const translations = {
         },
         errors: {
           generic: 'Impossible de lire ce QR pour le moment.',
+          notYebapay: 'Ce QR n a pas ete genere par YebaPay.',
           invalid: 'Ce QR n est pas valide.',
           expired: 'Ce QR a expire.',
           unsupported: 'Ce QR ne correspond pas a un wallet personnel utilisable pour un transfert.',
@@ -370,6 +371,17 @@ export const translations = {
         decline: 'Refuser la demande',
         declining: 'Refus...',
       },
+      review: {
+        title: 'Valider le paiement',
+        subtitle: 'Verifiez les details de la transaction avant de saisir votre PIN.',
+        summaryTitle: 'Details du paiement',
+        routingTitle: 'Parcours du paiement',
+        sourceWallet: 'Wallet debite',
+        targetWallet: 'Wallet credite',
+        walletTitle: 'Choisir le wallet',
+        noCompatibleWallet: 'Aucun wallet compatible n est disponible pour regler cette demande.',
+        submit: 'Continuer',
+      },
       pay: {
         title: 'Confirmer le paiement',
         subtitle: 'Le total debite est recalcule juste avant la validation.',
@@ -404,6 +416,7 @@ export const translations = {
         assignedToAnotherUser: 'Cette demande est reservee a un autre utilisateur.',
         selfRequest: 'Vous ne pouvez pas payer votre propre demande.',
         invalidAmount: 'Le montant demande est invalide.',
+        currencyUnsupported: 'Le transfert entre devises differentes n est pas encore supporte.',
         insufficientBalance: 'Solde insuffisant pour regler cette demande.',
         dailyLimitExceeded: 'Le plafond journalier de votre wallet est depasse.',
         monthlyLimitExceeded: 'Le plafond mensuel de votre wallet est depasse.',
@@ -422,6 +435,11 @@ export const translations = {
       wallets: {
         retry: 'Reessayer',
         empty: 'Aucun wallet disponible pour le moment.',
+        qr: {
+          title: 'Mon QR wallet',
+          subtitle: 'Scannez ce QR pour ajouter rapidement ce wallet comme beneficiaire.',
+          loadError: 'Impossible de charger votre QR pour le moment.',
+        },
         messages: {
           loading: 'Chargement des wallets...',
           genericError: 'Impossible de charger les wallets.',
@@ -523,12 +541,16 @@ export const translations = {
         pin: 'Reconfirmer les operations sensibles avec le PIN transactionnel.',
       },
       live: {
-        title: 'Scanner',
+        title: 'Scanner & payer',
         body: 'Scannez un QR YebaPay pour payer une demande ou recuperer un wallet.',
         hint: 'Cadrez le QR a l interieur du repere.',
         loading: 'Verification du QR...',
         retry: 'Scanner a nouveau',
         unsupported: 'Ce QR n est pas encore supporte dans cet ecran.',
+        invalidModal: {
+          title: 'QR invalide',
+          body: 'Ce QR n est pas valide.',
+        },
         permission: {
           title: 'Autoriser l acces camera',
           body: 'YebaPay a besoin de la camera pour scanner une demande ou un wallet.',
@@ -942,6 +964,7 @@ export const translations = {
         },
         errors: {
           generic: 'Unable to read this QR right now.',
+          notYebapay: 'This QR was not issued by YebaPay.',
           invalid: 'This QR is not valid.',
           expired: 'This QR has expired.',
           unsupported: 'This QR does not match a personal wallet that can be used for a transfer.',
@@ -1022,6 +1045,17 @@ export const translations = {
         decline: 'Decline request',
         declining: 'Declining...',
       },
+      review: {
+        title: 'Review payment',
+        subtitle: 'Check the transaction details before entering your PIN.',
+        summaryTitle: 'Payment details',
+        routingTitle: 'Payment route',
+        sourceWallet: 'Debited wallet',
+        targetWallet: 'Credited wallet',
+        walletTitle: 'Choose a wallet',
+        noCompatibleWallet: 'No compatible wallet is available to settle this request.',
+        submit: 'Continue',
+      },
       pay: {
         title: 'Confirm payment',
         subtitle: 'The total debit is recalculated right before validation.',
@@ -1056,6 +1090,7 @@ export const translations = {
         assignedToAnotherUser: 'This request is reserved for another user.',
         selfRequest: 'You cannot pay your own request.',
         invalidAmount: 'The requested amount is invalid.',
+        currencyUnsupported: 'Cross-currency transfer is not supported yet.',
         insufficientBalance: 'Insufficient balance to settle this request.',
         dailyLimitExceeded: 'Your wallet daily limit has been exceeded.',
         monthlyLimitExceeded: 'Your wallet monthly limit has been exceeded.',
@@ -1074,6 +1109,11 @@ export const translations = {
       wallets: {
         retry: 'Retry',
         empty: 'No wallet available yet.',
+        qr: {
+          title: 'My wallet QR',
+          subtitle: 'Scan this QR to quickly add this wallet as a beneficiary.',
+          loadError: 'Unable to load your QR right now.',
+        },
         messages: {
           loading: 'Loading wallets...',
           genericError: 'Unable to load wallets.',
@@ -1176,12 +1216,16 @@ export const translations = {
         pin: 'Reconfirm sensitive operations with the transaction PIN.',
       },
       live: {
-        title: 'Scanner',
+        title: 'Scan & pay',
         body: 'Scan a YebaPay QR to pay a request or retrieve a wallet.',
         hint: 'Keep the QR inside the frame.',
         loading: 'Checking QR...',
         retry: 'Scan again',
         unsupported: 'This QR is not supported in this screen yet.',
+        invalidModal: {
+          title: 'Invalid QR',
+          body: 'This QR is not valid.',
+        },
         permission: {
           title: 'Allow camera access',
           body: 'YebaPay needs the camera to scan a request or a wallet.',

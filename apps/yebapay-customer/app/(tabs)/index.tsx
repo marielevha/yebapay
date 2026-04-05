@@ -1,9 +1,12 @@
 import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { type Href, router } from 'expo-router';
+import QRCode from 'react-native-qrcode-svg';
 import type { ComponentProps } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
+  Modal,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
@@ -19,6 +22,9 @@ import { AppTopBar } from '@/components/navigation/app-top-bar';
 import { ThemedText } from '@/components/themed-text';
 import { Brand, BrandColors, BrandShadow } from '@/constants/brand';
 import { Colors } from '@/constants/theme';
+import { AuthFormAlert } from '@/components/auth/auth-form-alert';
+import { qrApi } from '@/features/qr/qr.api';
+import type { QrToken } from '@/features/qr/qr.types';
 import { useHomeWallets } from '@/features/wallet/use-home-wallets';
 import { useHomeTransactions } from '@/features/wallet/use-home-transactions';
 import { presentTransaction } from '@/features/wallet/transaction-presenter';
@@ -26,6 +32,7 @@ import { useTransferFlow } from '@/features/transfer/transfer-flow-provider';
 import type { WalletDetails } from '@/features/wallet/wallet.types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useI18n } from '@/i18n/provider';
+import { isApiError } from '@/lib/api/api-error';
 import { useSession } from '@/providers/session-provider';
 
 type ActionItem = {
@@ -102,15 +109,103 @@ function maskWalletNumber(walletNumber: string) {
   return `•••• ${compactValue.slice(-4)}`;
 }
 
+function WalletQrModal({
+  visible,
+  wallet,
+  walletLabel,
+  qr,
+  isLoading,
+  errorMessage,
+  title,
+  onClose,
+  onRetry,
+}: {
+  visible: boolean;
+  wallet: WalletDetails | null;
+  walletLabel: string | null;
+  qr: QrToken | null;
+  isLoading: boolean;
+  errorMessage: string | null;
+  title: string;
+  onClose: () => void;
+  onRetry: () => void;
+}) {
+  const qrValue = qr?.qrRef ?? qr?.signedPayload ?? null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.qrOverlay} onPress={onClose}>
+        <Pressable style={[styles.qrSheet, BrandShadow.card]} onPress={(event) => event.stopPropagation()}>
+          <View style={styles.qrSheetHeader}>
+            <ThemedText type="sectionTitle" style={styles.qrTitle}>
+              {title}
+            </ThemedText>
+
+            <Pressable onPress={onClose} hitSlop={8} style={styles.qrCloseButton}>
+              <MaterialIcons name="close" size={20} color={BrandColors.ink} />
+            </Pressable>
+          </View>
+
+          {isLoading ? (
+            <View style={styles.qrStateWrap}>
+              <ActivityIndicator color={BrandColors.palm} />
+            </View>
+          ) : errorMessage ? (
+            <View style={styles.qrStateWrap}>
+              <AuthFormAlert message={errorMessage} />
+              <Pressable onPress={onRetry} hitSlop={8}>
+                <ThemedText type="link" lightColor={BrandColors.palm} darkColor={BrandColors.palm}>
+                  Retry
+                </ThemedText>
+              </Pressable>
+            </View>
+          ) : qrValue ? (
+            <View style={styles.qrBody}>
+              <View style={styles.qrPoster}>
+                <QRCode
+                  value={qrValue}
+                  size={208}
+                  ecl="H"
+                  quietZone={16}
+                  logo={qrLogo}
+                  logoSize={40}
+                  logoMargin={4}
+                  logoBackgroundColor={BrandColors.white}
+                  logoBorderRadius={14}
+                />
+              </View>
+
+              <View style={styles.qrWalletMeta}>
+                {walletLabel ? <ThemedText type="defaultSemiBold">{walletLabel}</ThemedText> : null}
+                <ThemedText
+                  type="bodySmall"
+                  lightColor={BrandColors.slate}
+                  darkColor={BrandColors.slate}>
+                  {wallet?.walletNumber ?? qr?.walletNumber ?? '-'}
+                </ThemedText>
+              </View>
+            </View>
+          ) : null}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const palette = Colors[colorScheme ?? 'light'];
   const { t, language } = useI18n();
-  const { user } = useSession();
+  const { user, accessToken, refreshSession } = useSession();
   const { resetFlow } = useTransferFlow();
   const { width: screenWidth } = useWindowDimensions();
   const [activeWalletIndex, setActiveWalletIndex] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [qrWallet, setQrWallet] = useState<WalletDetails | null>(null);
+  const [isQrVisible, setIsQrVisible] = useState(false);
+  const [personalQr, setPersonalQr] = useState<QrToken | null>(null);
+  const [isLoadingPersonalQr, setIsLoadingPersonalQr] = useState(false);
+  const [personalQrError, setPersonalQrError] = useState<string | null>(null);
   const { wallets, isLoading: isLoadingWallets, errorMessage: walletErrorMessage, reload: reloadWallets } =
     useHomeWallets();
 
@@ -132,6 +227,7 @@ export default function HomeScreen() {
   }, [wallets.length]);
 
   const activeWallet = wallets[activeWalletIndex] ?? null;
+  const qrWalletLabel = qrWallet ? getWalletTypeLabel(qrWallet.walletType, t) : null;
 
   const actions = ACTIONS.map((item) => ({
     ...item,
@@ -167,6 +263,49 @@ export default function HomeScreen() {
     const nextIndex = Math.round(event.nativeEvent.contentOffset.x / walletSnapInterval);
     setActiveWalletIndex(Math.max(0, Math.min(nextIndex, wallets.length - 1)));
   };
+
+  const loadPersonalQr = useCallback(
+    async (wallet: WalletDetails) => {
+      if (wallet.walletType !== 'PERSONAL' || !accessToken) {
+        return;
+      }
+
+      setIsQrVisible(true);
+      setQrWallet(wallet);
+      setPersonalQrError(null);
+      setIsLoadingPersonalQr(true);
+
+      const requestQr = async (token: string) => qrApi.getPersonal(token);
+
+      try {
+        const response = await requestQr(accessToken);
+        setPersonalQr(response);
+      } catch (error) {
+        const shouldRetry = isApiError(error) && error.status === 401;
+
+        if (shouldRetry) {
+          try {
+            const refreshed = await refreshSession();
+
+            if (refreshed?.accessToken) {
+              const response = await requestQr(refreshed.accessToken);
+              setPersonalQr(response);
+              setPersonalQrError(null);
+              return;
+            }
+          } catch {
+            // Fall through to the user-facing error below.
+          }
+        }
+
+        setPersonalQr(null);
+        setPersonalQrError(t('home.wallets.qr.loadError'));
+      } finally {
+        setIsLoadingPersonalQr(false);
+      }
+    },
+    [accessToken, refreshSession, t]
+  );
 
   return (
     <SafeAreaView edges={['top']} style={[styles.safeArea, { backgroundColor: palette.background }]}>
@@ -305,13 +444,22 @@ export default function HomeScreen() {
                       {maskWalletNumber(wallet.walletNumber)}
                     </ThemedText>
 
-                    <View style={styles.walletSignature}>
-                      <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerTopLeft]} />
-                      <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerTopRight]} />
-                      <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerBottomLeft]} />
-                      <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerBottomRight]} />
-                      <View style={styles.walletSignatureCore} />
-                    </View>
+                    <Pressable
+                      onPress={() => void loadPersonalQr(wallet)}
+                      disabled={wallet.walletType !== 'PERSONAL'}
+                      hitSlop={8}
+                      style={[
+                        styles.walletSignaturePressable,
+                        wallet.walletType !== 'PERSONAL' ? styles.walletSignatureDisabled : null,
+                      ]}>
+                      <View style={styles.walletSignature}>
+                        <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerTopLeft]} />
+                        <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerTopRight]} />
+                        <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerBottomLeft]} />
+                        <View style={[styles.walletSignatureCorner, styles.walletSignatureCornerBottomRight]} />
+                        <View style={styles.walletSignatureCore} />
+                      </View>
+                    </Pressable>
                   </View>
                 </View>
               ))}
@@ -491,6 +639,25 @@ export default function HomeScreen() {
           </View>
         )}
       </ScrollView>
+
+      <WalletQrModal
+        visible={isQrVisible}
+        wallet={qrWallet}
+        walletLabel={qrWalletLabel}
+        qr={personalQr}
+        isLoading={isLoadingPersonalQr}
+        errorMessage={personalQrError}
+        title={t('home.wallets.qr.title')}
+        onClose={() => {
+          setIsQrVisible(false);
+          setPersonalQrError(null);
+        }}
+        onRetry={() => {
+          if (qrWallet) {
+            void loadPersonalQr(qrWallet);
+          }
+        }}
+      />
     </SafeAreaView>
   );
 }
@@ -597,6 +764,12 @@ const styles = StyleSheet.create({
     height: 30,
     position: 'relative',
     opacity: 0.92,
+  },
+  walletSignaturePressable: {
+    borderRadius: 12,
+  },
+  walletSignatureDisabled: {
+    opacity: 0.42,
   },
   walletSignatureCorner: {
     position: 'absolute',
@@ -747,4 +920,61 @@ const styles = StyleSheet.create({
   transactionTime: {
     textAlign: 'right',
   },
+  qrOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(14, 21, 19, 0.32)',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  qrSheet: {
+    borderRadius: 28,
+    backgroundColor: BrandColors.white,
+    borderWidth: 1,
+    borderColor: '#E2EBE5',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+    gap: 20,
+  },
+  qrSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  qrTitle: {
+    flex: 1,
+  },
+  qrCloseButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: BrandColors.cloud,
+    borderWidth: 1,
+    borderColor: '#E2EBE5',
+  },
+  qrStateWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 18,
+  },
+  qrBody: {
+    alignItems: 'center',
+    gap: 14,
+  },
+  qrPoster: {
+    padding: 14,
+    borderRadius: 28,
+    backgroundColor: BrandColors.white,
+    borderWidth: 1,
+    borderColor: '#E2EBE5',
+  },
+  qrWalletMeta: {
+    alignItems: 'center',
+    gap: 2,
+  },
 });
+
+const qrLogo = require('../../assets/brand/yebapay-badge.png');

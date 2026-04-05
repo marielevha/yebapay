@@ -121,8 +121,11 @@ public class MoneyRequestService {
         MoneyRequest moneyRequest = findByRequestRefOrThrow(requestRef);
         ensurePayable(moneyRequest, payerUserId);
 
-        User payer = requireActiveUser(payerUserId, "Payer not found");
-        Wallet sourceWallet = walletService.getActivePersonalWalletForUser(payerUserId);
+        Wallet sourceWallet = resolveSourceWallet(
+            payerUserId,
+            request == null ? null : request.sourceWalletId(),
+            moneyRequest
+        );
         Wallet destinationWallet = moneyRequest.getTargetWallet();
         BigDecimal amount = resolveSettlementAmount(moneyRequest, request == null ? null : request.amount());
         FeeQuote feeQuote = feeEngineService.quote(
@@ -175,7 +178,7 @@ public class MoneyRequestService {
             moneyRequest.setPayerUser(payer);
         }
 
-        Wallet sourceWallet = walletService.getActivePersonalWalletForUser(payerUserId);
+        Wallet sourceWallet = resolveSourceWallet(payerUserId, request.sourceWalletId(), moneyRequest);
         Wallet destinationWallet = moneyRequest.getTargetWallet();
         BigDecimal amount = resolveSettlementAmount(moneyRequest, request.amount());
         FeeQuote feeQuote = feeEngineService.quote(
@@ -253,6 +256,20 @@ public class MoneyRequestService {
     private void ensurePayable(MoneyRequest moneyRequest, UUID payerUserId) {
         ensurePending(refreshExpiredStatus(moneyRequest));
         ensurePayerAccess(moneyRequest, payerUserId);
+    }
+
+    private Wallet resolveSourceWallet(UUID payerUserId, UUID sourceWalletId, MoneyRequest moneyRequest) {
+        Wallet sourceWallet = sourceWalletId == null
+            ? walletService.getActivePersonalWalletForUser(payerUserId)
+            : walletService.getActiveOwnedWalletForUser(payerUserId, sourceWalletId);
+
+        Wallet destinationWallet = moneyRequest.getTargetWallet();
+
+        if (destinationWallet != null && !sourceWallet.getCurrencyCode().equals(destinationWallet.getCurrencyCode())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cross-currency transfer is not supported yet");
+        }
+
+        return sourceWallet;
     }
 
     private void ensurePending(MoneyRequest moneyRequest) {

@@ -32,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class QrService {
 
+    private static final String ISSUER_APP = "YEBAPAY";
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {
     };
 
@@ -204,6 +205,7 @@ public class QrService {
         Instant issuedAt = Instant.now();
 
         Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("issuerApp", ISSUER_APP);
         payload.put("qrRef", qrRef);
         payload.put("qrType", qrType.name());
         payload.put("issuerType", issuerType);
@@ -254,6 +256,10 @@ public class QrService {
         }
 
         if (!normalized.contains(".")) {
+            if (!normalized.startsWith("QR-")) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "QR is not issued by YebaPay");
+            }
+
             return qrTokenRepository.findByQrRef(normalized)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "QR not found"));
         }
@@ -262,11 +268,12 @@ public class QrService {
         if (parts.length != 2) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "QR payload is malformed");
         }
+        Map<String, Object> payload = decodePayloadForVerification(parts[0]);
+        ensureIssuedByYebaPay(payload);
+
         if (!sign(parts[0]).equals(parts[1])) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "QR signature is invalid");
         }
-
-        Map<String, Object> payload = decodePayload(parts[0]);
         Object qrRef = payload.get("qrRef");
         if (!(qrRef instanceof String qrReference) || qrReference.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "QR reference is missing");
@@ -301,6 +308,25 @@ public class QrService {
             return objectMapper.readValue(decoded, MAP_TYPE);
         } catch (Exception exception) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to decode QR payload");
+        }
+    }
+
+    private Map<String, Object> decodePayloadForVerification(String encodedPayload) {
+        try {
+            return decodePayload(encodedPayload);
+        } catch (ResponseStatusException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "QR is not issued by YebaPay");
+        }
+    }
+
+    private void ensureIssuedByYebaPay(Map<String, Object> payload) {
+        Object issuerApp = payload.get("issuerApp");
+        if (issuerApp == null) {
+            return;
+        }
+
+        if (!(issuerApp instanceof String issuerAppValue) || !ISSUER_APP.equalsIgnoreCase(issuerAppValue)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "QR is not issued by YebaPay");
         }
     }
 

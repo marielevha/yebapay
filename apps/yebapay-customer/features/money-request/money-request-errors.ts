@@ -49,6 +49,10 @@ function mapContextualMoneyRequestError(
     return t('requestMoney.errors.invalidAmount');
   }
 
+  if (message.includes('cross-currency transfer is not supported yet')) {
+    return t('requestMoney.errors.currencyUnsupported');
+  }
+
   if (message.includes('insufficient wallet balance')) {
     return t('requestMoney.errors.insufficientBalance');
   }

@@ -10,7 +10,7 @@ import { ThemedText } from '@/components/themed-text';
 import { BrandColors } from '@/constants/brand';
 
 type AuthCodeInputProps = {
-  label: string;
+  label?: string;
   value: string;
   onChangeText: (value: string) => void;
   length?: number;
@@ -27,9 +27,11 @@ export function AuthCodeInput({
 
   return (
     <View style={styles.wrapper}>
-      <ThemedText type="bodySmall" style={styles.label} lightColor={BrandColors.slate}>
-        {label}
-      </ThemedText>
+      {label ? (
+        <ThemedText type="bodySmall" style={styles.label} lightColor={BrandColors.slate}>
+          {label}
+        </ThemedText>
+      ) : null}
 
       <Pressable style={styles.row} onPress={() => inputRef.current?.focus()}>
         {Array.from({ length }).map((_, index) => {

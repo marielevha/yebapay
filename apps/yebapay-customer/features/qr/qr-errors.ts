@@ -27,6 +27,13 @@ export function getQrDecodeErrorMessage(error: unknown, t: Translate) {
     }
 
     if (
+      message.includes('qr is not issued by yebapay')
+      || message.includes('not a yebapay qr')
+    ) {
+      return t('transfer.qr.errors.notYebapay');
+    }
+
+    if (
       message.includes('invalid qr payload')
       || message.includes('unknown qr reference')
       || message.includes('qr data is required')
