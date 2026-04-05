@@ -10,6 +10,26 @@ export const walletApi = {
     });
   },
 
+  listCurrentUserHomeTransactions(
+    accessToken: string,
+    params: {
+      walletId: string;
+      size?: number;
+    }
+  ) {
+    const searchParams = new URLSearchParams();
+    searchParams.set('walletId', params.walletId);
+
+    if (typeof params.size === 'number') {
+      searchParams.set('size', String(params.size));
+    }
+
+    return httpClient.request<TransactionSummary[]>(`/wallets/me/home-transactions?${searchParams.toString()}`, {
+      method: 'GET',
+      accessToken,
+    });
+  },
+
   listCurrentUserTransactions(
     accessToken: string,
     params?: {

@@ -1,5 +1,6 @@
 package com.yebapay.core.transaction;
 
+import com.yebapay.core.beneficiary.BeneficiaryService;
 import com.yebapay.core.common.currency.CurrencyMetadata;
 import com.yebapay.core.common.currency.CurrencyMetadataResolver;
 import com.yebapay.core.fee.FeeEngineService;
@@ -39,10 +40,11 @@ public class TransferService {
     private final TransactionPinService transactionPinService;
     private final WalletLimitService walletLimitService;
     private final CurrencyMetadataResolver currencyMetadataResolver;
+    private final BeneficiaryService beneficiaryService;
 
     @Transactional(readOnly = true)
     public P2pTransferQuoteResponse quoteP2pTransfer(UUID initiatorUserId, P2pTransferQuoteRequest request) {
-        TransferParticipants participants = resolveParticipants(initiatorUserId, request.destinationPhoneNumber());
+        TransferParticipants participants = resolveParticipants(initiatorUserId, request.destinationWalletNumber());
         BigDecimal amount = normalizeAmount(request.amount());
         ensureTransferIsAllowed(participants.sourceWallet(), participants.destinationWallet(), amount);
 
@@ -74,7 +76,24 @@ public class TransferService {
     }
 
     @Transactional(readOnly = true)
-    public List<TransactionSummaryResponse> getRecentTransactions(
+    public List<TransactionSummaryResponse> getHomeTransactions(
+        UUID userId,
+        UUID walletId,
+        int size
+    ) {
+        int normalizedSize = Math.min(Math.max(size, 1), 20);
+
+        return transactionRepository.findRecentForUserByWallet(
+                userId,
+                walletId,
+                PageRequest.of(0, normalizedSize)
+            ).stream()
+            .map(transaction -> toTransactionSummary(transaction, userId))
+            .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TransactionSummaryResponse> getTransactionHistory(
         UUID userId,
         int page,
         int size,
@@ -84,12 +103,25 @@ public class TransferService {
         int normalizedPage = Math.max(page, 0);
         int normalizedSize = Math.min(Math.max(size, 1), 50);
 
-        return transactionRepository.findRecentForUserFiltered(
+        PageRequest pageRequest = PageRequest.of(normalizedPage, normalizedSize);
+        List<Transaction> transactions;
+
+        if (walletId != null && transactionType != null) {
+            transactions = transactionRepository.findRecentForUserByWalletAndTransactionType(
                 userId,
                 walletId,
                 transactionType,
-                PageRequest.of(normalizedPage, normalizedSize)
-            ).stream()
+                pageRequest
+            );
+        } else if (walletId != null) {
+            transactions = transactionRepository.findRecentForUserByWallet(userId, walletId, pageRequest);
+        } else if (transactionType != null) {
+            transactions = transactionRepository.findRecentForUserByTransactionType(userId, transactionType, pageRequest);
+        } else {
+            transactions = transactionRepository.findRecentForUser(userId, pageRequest);
+        }
+
+        return transactions.stream()
             .map(transaction -> toTransactionSummary(transaction, userId))
             .toList();
     }
@@ -107,7 +139,7 @@ public class TransferService {
             return toP2pTransferResponse(existingTransaction);
         }
 
-        TransferParticipants participants = resolveParticipants(initiatorUserId, request.destinationPhoneNumber());
+        TransferParticipants participants = resolveParticipants(initiatorUserId, request.destinationWalletNumber());
         BigDecimal amount = normalizeAmount(request.amount());
         ensureTransferIsAllowed(participants.sourceWallet(), participants.destinationWallet(), amount);
         transactionPinService.validateOrThrow(initiatorUserId, request.pin());
@@ -139,27 +171,33 @@ public class TransferService {
             normalizeDescription(request.description())
         ));
 
+        beneficiaryService.recordSuccessfulTransfer(initiatorUserId, participants.destinationWallet());
+
         return toP2pTransferResponse(transaction);
     }
 
-    private TransferParticipants resolveParticipants(UUID initiatorUserId, String destinationPhoneNumber) {
+    private TransferParticipants resolveParticipants(UUID initiatorUserId, String destinationWalletNumber) {
         User initiator = userRepository.findByIdAndDeletedAtIsNull(initiatorUserId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Initiator not found"));
-        User recipient = userRepository.findByPhoneNumberAndDeletedAtIsNull(normalizePhoneNumber(destinationPhoneNumber))
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipient not found"));
 
         if (initiator.getStatus() != UserStatus.ACTIVE) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Initiator account is not active");
         }
+
+        Wallet sourceWallet = walletService.getActivePersonalWalletForUser(initiator.getId());
+        Wallet destinationWallet = walletService.getActivePersonalWalletByWalletNumber(destinationWalletNumber);
+        User recipient = destinationWallet.getOwnerUser();
+
+        if (recipient == null || recipient.getDeletedAt() != null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipient account not found");
+        }
         if (recipient.getStatus() != UserStatus.ACTIVE) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Recipient account is not active");
         }
-        if (initiator.getId().equals(recipient.getId())) {
+        if (sourceWallet.getId().equals(destinationWallet.getId()) || initiator.getId().equals(recipient.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You cannot transfer to your own wallet");
         }
 
-        Wallet sourceWallet = walletService.getActivePersonalWalletForUser(initiator.getId());
-        Wallet destinationWallet = walletService.getActivePersonalWalletForUser(recipient.getId());
         return new TransferParticipants(initiator, recipient, sourceWallet, destinationWallet);
     }
 
@@ -231,10 +269,6 @@ public class TransferService {
             transaction.getInitiatedAt(),
             transaction.getCompletedAt()
         );
-    }
-
-    private String normalizePhoneNumber(String phoneNumber) {
-        return phoneNumber == null ? null : phoneNumber.trim();
     }
 
     private String normalizeDescription(String description) {

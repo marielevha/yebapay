@@ -143,11 +143,17 @@ export function useInfiniteWalletTransactions(
     ]
   );
 
+  const fetchPageRef = useRef(fetchPage);
+
+  useEffect(() => {
+    fetchPageRef.current = fetchPage;
+  }, [fetchPage]);
+
   useEffect(() => {
     if (isFocused) {
-      void fetchPage(0, 'replace');
+      void fetchPageRef.current(0, 'replace');
     }
-  }, [fetchPage, isFocused]);
+  }, [filters?.transactionType, filters?.walletId, isFocused, pageSize]);
 
   const reload = useCallback(async () => {
     await fetchPage(0, 'replace');

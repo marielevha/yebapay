@@ -76,6 +76,27 @@ public class WalletService {
         return getActiveWalletForUser(userId, WalletType.MERCHANT, "Merchant wallet not found");
     }
 
+    @Transactional(readOnly = true)
+    public Wallet getActivePersonalWalletByWalletNumber(String walletNumber) {
+        String normalizedWalletNumber = normalizeWalletNumber(walletNumber);
+        Wallet wallet = walletRepository.findByWalletNumberAndDeletedAtIsNull(normalizedWalletNumber)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipient wallet not found"));
+
+        if (wallet.getWalletType() != WalletType.PERSONAL
+            || wallet.getOwnerType() != WalletOwnerType.USER
+            || wallet.getOwnerUser() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Recipient wallet not found");
+        }
+        if (wallet.getOwnerUser().getStatus() != UserStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Recipient account is not active");
+        }
+        if (wallet.getStatus() != WalletStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Recipient wallet is not active");
+        }
+
+        return wallet;
+    }
+
     @Transactional
     public Wallet lockWallet(UUID walletId) {
         return walletRepository.findLockedByIdAndDeletedAtIsNull(walletId)
@@ -118,6 +139,14 @@ public class WalletService {
 
     private String generateWalletNumber() {
         return "WAL-" + UUID.randomUUID().toString().replace("-", "").substring(0, 12).toUpperCase();
+    }
+
+    private String normalizeWalletNumber(String walletNumber) {
+        if (walletNumber == null || walletNumber.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wallet number is required");
+        }
+
+        return walletNumber.trim().toUpperCase();
     }
 
     private Wallet getActiveWalletForUser(UUID userId, WalletType walletType, String notFoundMessage) {

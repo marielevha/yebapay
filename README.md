@@ -81,11 +81,44 @@ La partie mobile a deja quitte le simple scaffold Expo :
   - timeline infinie par lots de 10
   - pull-to-refresh
   - affichage date + heure sur les cartes
+- parcours `Transfert` branche de bout en bout :
+  - choix du beneficiaire depuis les recents ou la liste complete
+  - ajout manuel d'un beneficiaire
+  - scan QR pour remplir un wallet destinataire
+  - etape montant avec motif optionnel
+  - calcul des frais et verification en direct du solde disponible
+  - ecran de verification avant PIN
+  - validation par PIN transactionnel
+  - ecran succes avec recu simplifie
+- experience `Accueil` et chargements renforces :
+  - transactions de la home filtrees par le wallet courant du carousel
+  - pull-to-refresh sur la home
+  - hooks de chargement stabilises pour eviter les boucles de refetch
+  - refresh de session mobile serialize pour eviter les conflits de tokens
 - support backend ajoute pour la pagination et le filtrage des transactions :
   - `page`
   - `size`
   - `walletId`
   - `transactionType`
+
+### Travaux de la branche `feat/customer-p2p-transfer`
+
+Cette branche a fait passer le projet d'un socle wallet/auth a un premier parcours P2P vraiment exploitable sur mobile :
+
+- backend :
+  - migration `V6__add_beneficiaries.sql`
+  - module `beneficiary` ajoute avec persistance, listing, recherche et reusage apres transfert reussi
+  - support du `description` / motif sur le quote et l'execution des transferts P2P
+  - endpoints distincts pour la `home` et l'historique complet des transactions
+  - filtre de trace HTTP en terminal pour suivre les requetes entrantes
+  - corrections sur les filtres optionnels et la recherche beneficiaries cote PostgreSQL
+- mobile :
+  - nouveau domaine `transfer` avec provider, API, types, erreurs et ecrans dedies
+  - nouveau domaine `beneficiaries` pour recents, liste complete et ajout
+  - support QR cote transfert pour remplir rapidement un wallet destinataire
+  - revue des ecrans `recipient`, `amount`, `confirm`, `pin` et `success` avec une structure plus simple
+  - verification visuelle du solde insuffisant pendant la saisie du montant a partir du `quote`
+  - i18n et messages utilisateur etendus pour tout le parcours
 
 ## Fonctionnalites deja couvertes cote backend
 
@@ -93,6 +126,7 @@ La partie mobile a deja quitte le simple scaffold Expo :
 - consultation du wallet
 - historique de transactions
 - transfert entre particuliers
+- gestion des beneficiaires recents
 - demande d'argent
 - paiement chez un commercant
 - cash-in MVP
@@ -114,7 +148,6 @@ La partie mobile a deja quitte le simple scaffold Expo :
 - poursuivre le branchement backend reel sur `Scanner` et `Profil`
 - integrer la camera pour le scan QR
 - construire les parcours metier complets autour du wallet :
-  - transfert P2P
   - demande d'argent
   - paiement marchand
   - historique detaille

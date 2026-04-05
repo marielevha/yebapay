@@ -35,6 +35,15 @@ public class WalletController {
         @RequestParam(required = false) UUID walletId,
         @RequestParam(required = false) TransactionType transactionType
     ) {
-        return transferService.getRecentTransactions(principal.getUserId(), page, size, walletId, transactionType);
+        return transferService.getTransactionHistory(principal.getUserId(), page, size, walletId, transactionType);
+    }
+
+    @GetMapping("/me/home-transactions")
+    public List<TransactionSummaryResponse> currentUserHomeTransactions(
+        @AuthenticationPrincipal AuthenticatedUser principal,
+        @RequestParam UUID walletId,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        return transferService.getHomeTransactions(principal.getUserId(), walletId, size);
     }
 }

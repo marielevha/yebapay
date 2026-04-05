@@ -14,12 +14,20 @@ import { BrandColors } from '@/constants/brand';
 type AuthFieldProps = TextInputProps & {
   label: string;
   icon: ComponentProps<typeof MaterialIcons>['name'];
+  actionIcon?: ComponentProps<typeof MaterialIcons>['name'];
+  onActionPress?: () => void;
+  actionAccessibilityLabel?: string;
+  actionColor?: string;
 };
 
 export function AuthField({
   label,
   icon,
   secureTextEntry,
+  actionIcon,
+  onActionPress,
+  actionAccessibilityLabel,
+  actionColor,
   style,
   ...props
 }: AuthFieldProps) {
@@ -66,6 +74,18 @@ export function AuthField({
               name={visible ? 'visibility-off' : 'visibility'}
               size={20}
               color="#9AA9A4"
+            />
+          </Pressable>
+        ) : actionIcon && onActionPress ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={actionAccessibilityLabel}
+            onPress={onActionPress}
+            hitSlop={8}>
+            <MaterialIcons
+              name={actionIcon}
+              size={20}
+              color={actionColor ?? (focused ? BrandColors.palm : '#9AA9A4')}
             />
           </Pressable>
         ) : null}

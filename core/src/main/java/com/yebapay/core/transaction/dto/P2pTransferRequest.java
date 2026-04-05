@@ -9,8 +9,8 @@ import java.math.BigDecimal;
 
 public record P2pTransferRequest(
     @NotBlank
-    @Size(max = 30)
-    String destinationPhoneNumber,
+    @Size(max = 50)
+    String destinationWalletNumber,
 
     @NotNull
     @DecimalMin(value = "0.0001")

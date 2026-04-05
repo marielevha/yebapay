@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import { authApi } from '@/features/auth/auth.api';
 import type {
@@ -79,6 +79,50 @@ function wait(ms: number) {
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>('bootstrapping');
   const [session, setSession] = useState<StoredAuthSession | null>(null);
+  const refreshPromiseRef = useRef<Promise<StoredAuthSession | null> | null>(null);
+
+  const clearSessionState = useCallback(async () => {
+    setSession(null);
+    setStatus('unauthenticated');
+    await clearPersistedSession();
+  }, []);
+
+  const applyAuthResponse = useCallback(async (response: AuthResponse) => {
+    const nextSession = toStoredSession(response);
+    await persistSession(nextSession);
+    setSession(nextSession);
+    setStatus('authenticated');
+    return nextSession;
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    if (refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
+    }
+
+    if (!session?.refreshToken) {
+      await clearSessionState();
+      return null;
+    }
+
+    const refreshPromise = (async () => {
+      try {
+        const response = await authApi.refresh({
+          refreshToken: session.refreshToken,
+        });
+
+        return await applyAuthResponse(response);
+      } catch {
+        await clearSessionState();
+        return null;
+      } finally {
+        refreshPromiseRef.current = null;
+      }
+    })();
+
+    refreshPromiseRef.current = refreshPromise;
+    return refreshPromise;
+  }, [applyAuthResponse, clearSessionState, session?.refreshToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,21 +143,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setSession(storedSession);
           setStatus('authenticated');
         }
-
-        try {
-          const refreshed = await authApi.refresh({
-            refreshToken: storedSession.refreshToken,
-          });
-          const nextSession = toStoredSession(refreshed);
-          await persistSession(nextSession);
-
-          if (!cancelled) {
-            setSession(nextSession);
-          }
-        } catch {
-          // Keep the cached session while the access token is still valid.
-        }
-
         return;
       }
 
@@ -129,11 +158,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           setStatus('authenticated');
         }
       } catch {
-        await clearPersistedSession();
-
         if (!cancelled) {
-          setSession(null);
-          setStatus('unauthenticated');
+          await clearSessionState();
+        } else {
+          await clearPersistedSession();
         }
       }
     };
@@ -146,14 +174,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const contextValue = useMemo<SessionContextValue>(() => {
-    const applyAuthResponse = async (response: AuthResponse) => {
-      const nextSession = toStoredSession(response);
-      await persistSession(nextSession);
-      setSession(nextSession);
-      setStatus('authenticated');
-      return nextSession;
-    };
-
     const signIn = async (request: LoginRequest) => {
       const response = await authApi.login(request);
       return applyAuthResponse(response);
@@ -180,6 +200,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setStatus('unauthenticated');
       await clearPersistedSession();
+      refreshPromiseRef.current = null;
     };
 
     const setupTransactionPin = async (request: SetupTransactionPinRequest) => {
@@ -188,21 +209,6 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
 
       await authApi.setupTransactionPin(request, session.accessToken);
-    };
-
-    const refreshSession = async () => {
-      if (!session?.refreshToken) {
-        setSession(null);
-        setStatus('unauthenticated');
-        await clearPersistedSession();
-        return null;
-      }
-
-      const response = await authApi.refresh({
-        refreshToken: session.refreshToken,
-      });
-
-      return applyAuthResponse(response);
     };
 
     const reloadCurrentUser = async () => {
@@ -235,7 +241,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       refreshSession,
       reloadCurrentUser,
     };
-  }, [session, status]);
+  }, [applyAuthResponse, refreshSession, session, status]);
 
   return <SessionContext.Provider value={contextValue}>{children}</SessionContext.Provider>;
 }

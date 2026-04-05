@@ -1,5 +1,5 @@
-import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useMemo, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { walletApi } from '@/features/wallet/wallet.api';
 import { getWalletErrorMessage } from '@/features/wallet/wallet-errors';
@@ -20,15 +20,27 @@ export function useWalletTransactions(
   filters?: {
     walletId?: string;
     transactionType?: TransactionType;
+  },
+  options?: {
+    enabled?: boolean;
   }
 ): UseWalletTransactionsResult {
   const { accessToken, refreshSession, isAuthenticated } = useSession();
+  const isFocused = useIsFocused();
   const { t } = useI18n();
   const [transactions, setTransactions] = useState<TransactionSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const isEnabled = options?.enabled ?? true;
 
   const loadTransactions = useCallback(async () => {
+    if (!isEnabled) {
+      setTransactions([]);
+      setErrorMessage(null);
+      setIsLoading(false);
+      return;
+    }
+
     if (!isAuthenticated || !accessToken) {
       setTransactions([]);
       setErrorMessage(null);
@@ -78,13 +90,28 @@ export function useWalletTransactions(
     } finally {
       setIsLoading(false);
     }
-  }, [accessToken, filters?.transactionType, filters?.walletId, isAuthenticated, limit, refreshSession, t]);
+  }, [
+    accessToken,
+    filters?.transactionType,
+    filters?.walletId,
+    isAuthenticated,
+    isEnabled,
+    limit,
+    refreshSession,
+    t,
+  ]);
 
-  useFocusEffect(
-    useCallback(() => {
-      void loadTransactions();
-    }, [loadTransactions])
-  );
+  const loadTransactionsRef = useRef(loadTransactions);
+
+  useEffect(() => {
+    loadTransactionsRef.current = loadTransactions;
+  }, [loadTransactions]);
+
+  useEffect(() => {
+    if (isFocused) {
+      void loadTransactionsRef.current();
+    }
+  }, [filters?.transactionType, filters?.walletId, isEnabled, isFocused, limit]);
 
   return useMemo(
     () => ({

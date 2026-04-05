@@ -2,11 +2,12 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import type { ComponentProps } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   Pressable,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   View,
@@ -21,6 +22,7 @@ import { Colors } from '@/constants/theme';
 import { useHomeWallets } from '@/features/wallet/use-home-wallets';
 import { useHomeTransactions } from '@/features/wallet/use-home-transactions';
 import { presentTransaction } from '@/features/wallet/transaction-presenter';
+import { useTransferFlow } from '@/features/transfer/transfer-flow-provider';
 import type { WalletDetails } from '@/features/wallet/wallet.types';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useI18n } from '@/i18n/provider';
@@ -29,7 +31,7 @@ import { useSession } from '@/providers/session-provider';
 type ActionItem = {
   icon: ComponentProps<typeof MaterialIcons>['name'];
   labelKey: string;
-  route?: '/(tabs)/scanner' | '/(tabs)/transactions' | '/(tabs)/profile';
+  route?: string;
 };
 
 const ACTIONS: ActionItem[] = [
@@ -50,7 +52,7 @@ const ACTIONS: ActionItem[] = [
   {
     icon: 'swap-horiz',
     labelKey: 'home.actions.transfer',
-    route: '/(tabs)/transactions',
+    route: '/transfer/recipient',
   },
 ];
 
@@ -105,11 +107,12 @@ export default function HomeScreen() {
   const palette = Colors[colorScheme ?? 'light'];
   const { t, language } = useI18n();
   const { user } = useSession();
+  const { resetFlow } = useTransferFlow();
   const { width: screenWidth } = useWindowDimensions();
   const [activeWalletIndex, setActiveWalletIndex] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const { wallets, isLoading: isLoadingWallets, errorMessage: walletErrorMessage, reload: reloadWallets } =
     useHomeWallets();
-  const { transactions: recentTransactions, isLoading, errorMessage, reload } = useHomeTransactions();
 
   const hasMultipleWallets = wallets.length > 1;
   const walletCardWidth = Math.max(
@@ -128,14 +131,33 @@ export default function HomeScreen() {
     });
   }, [wallets.length]);
 
+  const activeWallet = wallets[activeWalletIndex] ?? null;
+
   const actions = ACTIONS.map((item) => ({
     ...item,
     label: t(item.labelKey),
   }));
+  const {
+    transactions: recentTransactions,
+    isLoading: isLoadingTransactions,
+    errorMessage,
+    reload,
+  } = useHomeTransactions(activeWallet?.id);
+  const isLoading = isLoadingWallets || isLoadingTransactions;
   const transactions = useMemo(
     () => recentTransactions.map((transaction) => presentTransaction(transaction, t, language)),
     [language, recentTransactions, t]
   );
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+
+    try {
+      await Promise.allSettled([reloadWallets(), reload()]);
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [reload, reloadWallets]);
 
   const handleWalletScrollEnd = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     if (!hasMultipleWallets) {
@@ -163,7 +185,15 @@ export default function HomeScreen() {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled">
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void handleRefresh()}
+            tintColor={palette.tint}
+            colors={[palette.tint]}
+          />
+        }>
         {isLoadingWallets ? (
           <View style={[styles.walletCard, styles.walletStateCard, BrandShadow.card]}>
             <ThemedText
@@ -306,6 +336,9 @@ export default function HomeScreen() {
               key={action.labelKey}
               onPress={() => {
                 if (action.route) {
+                  if (action.route === '/transfer/recipient') {
+                    resetFlow();
+                  }
                   router.push(action.route);
                 }
               }}

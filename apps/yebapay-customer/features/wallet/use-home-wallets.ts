@@ -1,5 +1,5 @@
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { walletApi } from '@/features/wallet/wallet.api';
 import { getWalletErrorMessage } from '@/features/wallet/wallet-errors';
@@ -68,10 +68,16 @@ export function useHomeWallets(): UseHomeWalletsResult {
     }
   }, [accessToken, isAuthenticated, refreshSession, t]);
 
+  const loadWalletsRef = useRef(loadWallets);
+
+  useEffect(() => {
+    loadWalletsRef.current = loadWallets;
+  }, [loadWallets]);
+
   useFocusEffect(
     useCallback(() => {
-      void loadWallets();
-    }, [loadWallets])
+      void loadWalletsRef.current();
+    }, [])
   );
 
   return useMemo(

@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { Colors } from '@/constants/theme';
+import { TransferFlowProvider } from '@/features/transfer/transfer-flow-provider';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { TranslationProvider, useI18n } from '@/i18n/provider';
 import { OnboardingProvider } from '@/providers/onboarding-provider';
@@ -14,7 +15,9 @@ export default function RootLayout() {
     <TranslationProvider>
       <OnboardingProvider>
         <SessionProvider>
-          <RootNavigator />
+          <TransferFlowProvider>
+            <RootNavigator />
+          </TransferFlowProvider>
         </SessionProvider>
       </OnboardingProvider>
     </TranslationProvider>
@@ -59,6 +62,7 @@ function RootNavigator() {
         <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="transfer" options={{ headerShown: false, animation: 'slide_from_right' }} />
         <Stack.Screen
           name="modal"
           options={{ presentation: 'modal', title: t('common.returnHome') }}
